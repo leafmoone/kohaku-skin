@@ -60,5 +60,11 @@
   "skin.toastUnsupportedSkinFile": "仅支持导入 .zip 皮肤包或单文件 .css 皮肤。",
   "skin.toastActionFailed": "操作失败：{message}",
   "skin.loading": "正在加载皮肤配置...",
-  "skin.ownerUnavailable": "皮肤后端服务不可用（{status}）。"
+  "skin.ownerUnavailable": "皮肤后端服务不可用（{status}）。",
+  "skin.metaCommunity": "社区",
+  "skin.toastInvalidUrlScheme": "图片链接必须以 https:// 或 http:// 开头",
+  "skin.builtin.sakura-washi.name": "和纸绯樱",
+  "skin.builtin.sakura-washi.desc": "温润手作奉书和纸质感，融合绯樱朱砂、麻叶金箔纹样与花瓣柔光对话气泡。",
+  "skin.builtin.tsukimi-anime.name": "月咏星穹",
+  "skin.builtin.tsukimi-anime.desc": "暮色靛紫二次元弦月夜空美学，搭配银青流光、磨砂星轨 HUD 玻璃卡片与星光对话气泡。"
 }

@@ -5,7 +5,7 @@ ui:
   root: ui
   entry: ui/index.js
   styles: [ui/style.css]
-  i18n: { en: ui/i18n/en.json, zh-CN: ui/i18n/zh-CN.json }
+  i18n: { en: ui/i18n/en.json, zh-CN: ui/i18n/zh-CN.json, zh-TW: ui/i18n/zh-TW.json }
   handler: kohaku_skin.ui_owner:PackageUI
   api: kohaku_skin.api:router
   contributes:

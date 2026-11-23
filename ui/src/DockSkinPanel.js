@@ -15,6 +15,7 @@ import {
 } from "@kohakuterrarium/ui-sdk"
 
 import { bindOwnerToEngine } from "./engine.js"
+import { resolveSkinName, syncSettingsHostLabels, translateSkinText } from "./i18n.js"
 import {
   clampNumber,
   detectSkinImportFormat,
@@ -304,8 +305,11 @@ export function createDockSkinPanel(engine, panelControl) {
       let listenersBound = false
 
       function tr(key, params) {
-        void locale.value
-        return kt.t(key, params)
+        return translateSkinText(locale.value, key, params)
+      }
+
+      function skinLabel(skin) {
+        return resolveSkinName(locale.value, skin)
       }
 
       const ownerState = computed(() => owner.state.value)
@@ -349,6 +353,7 @@ export function createDockSkinPanel(engine, panelControl) {
           title: tr("skin.floatTitle", {}),
           onToggle: toggleFromDock,
         })
+        syncSettingsHostLabels(docRef, tr("skin.title", {}))
       }
 
       function scheduleDockSync() {
@@ -644,6 +649,7 @@ export function createDockSkinPanel(engine, panelControl) {
         bgMode,
         hasCustomWallpaper,
         tr,
+        skinLabel,
         startDomIntegration,
         teardownDomIntegration,
         closePanel,
@@ -735,7 +741,7 @@ export function createDockSkinPanel(engine, panelControl) {
                     :data-test="'ks-dock-skin-' + skin.id"
                     @click="selectSkin(skin.id)"
                   >
-                    {{ skin.name || skin.id }}
+                    {{ skinLabel(skin) }}
                   </button>
                 </div>
                 <div class="ks-dock-btn-row">

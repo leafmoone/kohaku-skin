@@ -3,7 +3,7 @@
  * Uses KT SDK SettingsGroup, SettingsRow, and ActionButton controls.
  */
 
-import { computed, onUnmounted, ref, watch } from "vue"
+import { computed, onMounted, onUnmounted, ref, watch } from "vue"
 import {
   ActionButton,
   SettingsGroup,
@@ -17,6 +17,12 @@ import {
 } from "@kohakuterrarium/ui-sdk"
 
 import { bindOwnerToEngine } from "./engine.js"
+import {
+  resolveSkinDescription,
+  resolveSkinName,
+  syncSettingsHostLabels,
+  translateSkinText,
+} from "./i18n.js"
 import {
   buildApiBase,
   buildTemplateZipUrl,
@@ -44,11 +50,13 @@ export function createSettingsView(engine) {
       const host = useHost()
       const locale = useLocale()
 
+      const docRef = typeof document !== "undefined" ? document : null
+
       const stopEngineWatch = bindOwnerToEngine(
         engine,
         owner,
         host,
-        typeof document !== "undefined" ? document : null,
+        docRef,
       )
 
       const busy = ref(false)
@@ -62,9 +70,24 @@ export function createSettingsView(engine) {
       let sliderCommitTimer = null
 
       function tr(key, params) {
-        void locale.value
-        return kt.t(key, params)
+        return translateSkinText(locale.value, key, params)
       }
+
+      function skinLabel(skin) {
+        return resolveSkinName(locale.value, skin)
+      }
+
+      function skinDesc(skin) {
+        return resolveSkinDescription(locale.value, skin)
+      }
+
+      onMounted(() => {
+        syncSettingsHostLabels(docRef, tr("skin.title", {}))
+      })
+
+      watch(locale, () => {
+        syncSettingsHostLabels(docRef, tr("skin.title", {}))
+      })
 
       const ownerState = computed(() => owner.state.value)
       const prefs = computed(() => (ownerState.value && ownerState.value.preferences) || null)
@@ -212,15 +235,16 @@ export function createSettingsView(engine) {
       }
 
       async function deleteCustomSkin(skin) {
+        const displayName = skinLabel(skin)
         const ok = await confirm(
-          tr("skin.confirmDelete", { name: skin.name || skin.id }),
+          tr("skin.confirmDelete", { name: displayName }),
           tr("skin.confirmDeleteTitle", {}),
           {},
         )
         if (!ok) return
         try {
           await runAction("delete_custom_skin", { skin_id: skin.id })
-          notify(tr("skin.toastDeleted", { name: skin.name || skin.id }), "success")
+          notify(tr("skin.toastDeleted", { name: displayName }), "success")
         } catch (_handled) {
           // Error already surfaced via notify in runAction.
         }
@@ -278,7 +302,7 @@ export function createSettingsView(engine) {
         }
         if (!isAllowedCustomUrl(raw)) {
           notify(
-            tr("skin.toastActionFailed", { message: "URL must start with https:// or http://" }),
+            tr("skin.toastActionFailed", { message: tr("skin.toastInvalidUrlScheme", {}) }),
             "warning",
           )
           return
@@ -354,6 +378,8 @@ export function createSettingsView(engine) {
         customDirHint,
         wallpaperStatus,
         tr,
+        skinLabel,
+        skinDesc,
         selectDefaultSkin,
         selectSkin,
         rescanSkins,
@@ -475,9 +501,9 @@ export function createSettingsView(engine) {
               >
                 <div class="ks-settings-skin-head">
                   <div>
-                    <div class="ks-settings-skin-title">{{ skin.name || skin.id }}</div>
+                    <div class="ks-settings-skin-title">{{ skinLabel(skin) }}</div>
                     <div class="ks-settings-skin-meta">
-                      {{ skin.author || "Community" }} / v{{ skin.version || "1.0.0" }}
+                      {{ skin.author || tr("skin.metaCommunity", {}) }} / v{{ skin.version || "1.0.0" }}
                     </div>
                   </div>
                   <div class="ks-settings-badges">
@@ -496,7 +522,7 @@ export function createSettingsView(engine) {
                   </div>
                 </div>
 
-                <p class="ks-settings-skin-desc">{{ skin.description || skin.id }}</p>
+                <p class="ks-settings-skin-desc">{{ skinDesc(skin) }}</p>
 
                 <div class="ks-settings-card-actions">
                   <ActionButton

@@ -60,5 +60,11 @@
   "skin.toastUnsupportedSkinFile": "Only .zip skin packs and .css files are supported.",
   "skin.toastActionFailed": "Action failed: {message}",
   "skin.loading": "Loading skin configuration...",
-  "skin.ownerUnavailable": "Skin service is unavailable ({status})."
+  "skin.ownerUnavailable": "Skin service is unavailable ({status}).",
+  "skin.metaCommunity": "Community",
+  "skin.toastInvalidUrlScheme": "URL must start with https:// or http://",
+  "skin.builtin.sakura-washi.name": "Sakura Washi",
+  "skin.builtin.sakura-washi.desc": "Warm Japanese handmade washi paper with vermilion-sakura crimson, gold-leaf Asanoha geometry, and petal-glow editorial bubbles.",
+  "skin.builtin.tsukimi-anime.name": "Moonlit Anime",
+  "skin.builtin.tsukimi-anime.desc": "Twilight indigo-violet cel-sky moonlight aesthetic with luminous silver-cyan glow, frosted anime HUD glass cards, and starlight dialogue bubbles."
 }
