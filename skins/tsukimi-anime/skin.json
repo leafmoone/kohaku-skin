@@ -1,0 +1,17 @@
+{
+  "id": "tsukimi-anime",
+  "name": "月咏星穹 · Moonlit Anime",
+  "version": "1.0.0",
+  "author": "Kohaku Lab",
+  "description": "Twilight indigo-violet cel-sky moonlight aesthetic with luminous silver-cyan glow, frosted anime HUD glass cards, and starlight dialogue bubbles.",
+  "color_mode": "dark",
+  "entry_css": "theme.css",
+  "default_background": "assets/bg-tsukimi-anime.svg",
+  "tokens": {
+    "--ks-accent": "#7dd3fc",
+    "--ks-accent-secondary": "#c084fc",
+    "--ks-radius": "0.875rem",
+    "--ks-surface-alpha": "0.68",
+    "--ks-backdrop-blur": "18px"
+  }
+}

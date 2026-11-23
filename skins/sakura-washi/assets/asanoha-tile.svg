@@ -1,0 +1,12 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="72" height="72" viewBox="0 0 72 72">
+  <g fill="none" stroke="#d4a373" stroke-opacity="0.16" stroke-width="0.9">
+    <polygon points="36,0 72,20.8 72,51.2 36,72 0,51.2 0,20.8"/>
+    <line x1="36" y1="0" x2="36" y2="72"/>
+    <line x1="0" y1="20.8" x2="72" y2="51.2"/>
+    <line x1="72" y1="20.8" x2="0" y2="51.2"/>
+    <polyline points="36,0 18,31.2 0,20.8"/>
+    <polyline points="36,0 54,31.2 72,20.8"/>
+    <polyline points="36,72 18,40.8 0,51.2"/>
+    <polyline points="36,72 54,40.8 72,51.2"/>
+  </g>
+</svg>

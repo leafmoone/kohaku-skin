@@ -1,0 +1,89 @@
+/*
+ * Sakura Washi (和纸绯樱) — Reference Example Skin for kohaku-skin.
+ * Combines handmade washi tones, vermilion-sakura crimson, gold-leaf accents,
+ * and subtle Asanoha geometric texture.
+ */
+
+html[data-ks-skin="sakura-washi"] {
+  --ks-bg: #fdf6f7;
+  --ks-surface: #fffbfc;
+  --ks-surface-alt: #f8ecef;
+  --ks-chrome: #f5e6eb;
+  --ks-panel: #f9eef1;
+  --ks-card: #fffcfd;
+  --ks-float: #fff9fb;
+  --ks-text: #2e1d23;
+  --ks-text-muted: #70525c;
+  --ks-text-faint: #9e7e88;
+  --ks-border: #edd5dc;
+  --ks-border-strong: #d4a373;
+  --ks-user-bubble: #fce8ee;
+  --ks-sakura-blush: #f472b6;
+  --ks-gold-leaf: #d4a373;
+}
+
+html.dark[data-ks-skin="sakura-washi"] {
+  --ks-bg: #191116;
+  --ks-surface: #251921;
+  --ks-surface-alt: #1f151b;
+  --ks-chrome: #160e13;
+  --ks-panel: #21161d;
+  --ks-card: #281b23;
+  --ks-float: #2f2029;
+  --ks-text: #f9edf1;
+  --ks-text-muted: #c7a9b4;
+  --ks-text-faint: #8c6d78;
+  --ks-border: #432d38;
+  --ks-border-strong: #9d6b53;
+  --ks-user-bubble: #38212d;
+  --ks-sakura-blush: #f472b6;
+  --ks-gold-leaf: #e0b589;
+}
+
+/* Subtle traditional Asanoha washi pattern overlay on the side rail */
+html[data-ks-skin="sakura-washi"] .kt-rail-pane {
+  background-image: url("./assets/asanoha-tile.svg");
+  background-size: 72px 72px;
+  border-right: 1px solid color-mix(in srgb, var(--ks-gold-leaf) 35%, var(--ks-border));
+}
+
+/* Delicate sakura & gold-leaf framed cards */
+html[data-ks-skin="sakura-washi"] .kt-v2-card,
+html[data-ks-skin="sakura-washi"] .card {
+  border: 1px solid color-mix(in srgb, var(--ks-accent) 18%, var(--ks-border));
+  box-shadow:
+    inset 0 1px 0 color-mix(in srgb, var(--ks-gold-leaf) 32%, transparent),
+    0 4px 16px rgba(225, 29, 72, 0.05);
+}
+
+html.dark[data-ks-skin="sakura-washi"] .kt-v2-card,
+html.dark[data-ks-skin="sakura-washi"] .card {
+  box-shadow:
+    inset 0 1px 0 color-mix(in srgb, var(--ks-gold-leaf) 22%, transparent),
+    0 8px 22px rgba(0, 0, 0, 0.34);
+}
+
+/* Editorial sakura left-rule on assistant turns */
+html[data-ks-skin="sakura-washi"] .kt-conversation-message--assistant {
+  padding-left: 0.9rem;
+  border-left: 2px solid color-mix(in srgb, var(--ks-gold-leaf) 65%, var(--ks-border));
+}
+
+/* Soft petal-glow user chat bubbles */
+html[data-ks-skin="sakura-washi"] .kt-conversation-user-bubble,
+html[data-ks-skin="sakura-washi"] .user-message {
+  border: 1px solid color-mix(in srgb, var(--ks-sakura-blush) 38%, var(--ks-border));
+  border-left: 3px solid var(--ks-accent);
+  box-shadow: 0 3px 14px color-mix(in srgb, var(--ks-sakura-blush) 14%, transparent);
+}
+
+/* Refined composer frame with vermilion-sakura focus glow */
+html[data-ks-skin="sakura-washi"] .kt-chat-composer__shell {
+  border-color: color-mix(in srgb, var(--ks-gold-leaf) 48%, var(--ks-border));
+  box-shadow: 0 2px 12px rgba(225, 29, 72, 0.06);
+}
+
+html[data-ks-skin="sakura-washi"] .kt-chat-composer__shell:focus-within {
+  border-color: var(--ks-accent);
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--ks-accent) 18%, transparent);
+}

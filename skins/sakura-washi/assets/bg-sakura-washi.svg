@@ -1,0 +1,146 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1920 1080" preserveAspectRatio="xMidYMid slice">
+  <defs>
+    <linearGradient id="washiBase" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#fff8f9"/>
+      <stop offset="48%" stop-color="#f9ecef"/>
+      <stop offset="100%" stop-color="#f2dce3"/>
+    </linearGradient>
+
+    <radialGradient id="crimsonSun" cx="78%" cy="24%" r="30%">
+      <stop offset="0%" stop-color="#e11d48" stop-opacity="0.22"/>
+      <stop offset="48%" stop-color="#f472b6" stop-opacity="0.14"/>
+      <stop offset="100%" stop-color="#fdf6f7" stop-opacity="0"/>
+    </radialGradient>
+
+    <radialGradient id="goldMist" cx="18%" cy="80%" r="44%">
+      <stop offset="0%" stop-color="#d4a373" stop-opacity="0.22"/>
+      <stop offset="55%" stop-color="#f472b6" stop-opacity="0.08"/>
+      <stop offset="100%" stop-color="#f8ecef" stop-opacity="0"/>
+    </radialGradient>
+
+    <linearGradient id="petalLight" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#fff1f2"/>
+      <stop offset="55%" stop-color="#fda4af"/>
+      <stop offset="100%" stop-color="#fb7185"/>
+    </linearGradient>
+
+    <linearGradient id="petalDeep" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#fecdd3"/>
+      <stop offset="50%" stop-color="#f43f5e"/>
+      <stop offset="100%" stop-color="#be123c"/>
+    </linearGradient>
+
+    <pattern id="asanohaBg" width="96" height="96" patternUnits="userSpaceOnUse">
+      <g fill="none" stroke="#d4a373" stroke-opacity="0.16" stroke-width="0.85">
+        <polygon points="48,0 96,27.7 96,68.3 48,96 0,68.3 0,27.7"/>
+        <line x1="48" y1="0" x2="48" y2="96"/>
+        <line x1="0" y1="27.7" x2="96" y2="68.3"/>
+        <line x1="96" y1="27.7" x2="0" y2="68.3"/>
+        <polyline points="48,0 24,41.5 0,27.7"/>
+        <polyline points="48,0 72,41.5 96,27.7"/>
+        <polyline points="48,96 24,54.5 0,68.3"/>
+        <polyline points="48,96 72,54.5 96,68.3"/>
+      </g>
+    </pattern>
+
+    <!-- Reusable 5-petal notched sakura blossom -->
+    <g id="sakuraFlower">
+      <g fill="url(#petalLight)" stroke="#e11d48" stroke-opacity="0.22" stroke-width="0.9">
+        <path d="M 0,0 C -11,-12 -14,-30 -4,-40 L 0,-32 L 4,-40 C 14,-30 11,-12 0,0 Z"/>
+        <path d="M 0,0 C -11,-12 -14,-30 -4,-40 L 0,-32 L 4,-40 C 14,-30 11,-12 0,0 Z" transform="rotate(72)"/>
+        <path d="M 0,0 C -11,-12 -14,-30 -4,-40 L 0,-32 L 4,-40 C 14,-30 11,-12 0,0 Z" transform="rotate(144)"/>
+        <path d="M 0,0 C -11,-12 -14,-30 -4,-40 L 0,-32 L 4,-40 C 14,-30 11,-12 0,0 Z" transform="rotate(216)"/>
+        <path d="M 0,0 C -11,-12 -14,-30 -4,-40 L 0,-32 L 4,-40 C 14,-30 11,-12 0,0 Z" transform="rotate(288)"/>
+      </g>
+      <circle cx="0" cy="0" r="6" fill="#be123c" fill-opacity="0.72"/>
+      <g stroke="#d4a373" stroke-width="1.1">
+        <line x1="0" y1="0" x2="0" y2="-13"/>
+        <line x1="0" y1="0" x2="12" y2="-4"/>
+        <line x1="0" y1="0" x2="8" y2="10"/>
+        <line x1="0" y1="0" x2="-8" y2="10"/>
+        <line x1="0" y1="0" x2="-12" y2="-4"/>
+      </g>
+      <g fill="#f5d0a9">
+        <circle cx="0" cy="-14" r="1.8"/>
+        <circle cx="13" cy="-4.2" r="1.8"/>
+        <circle cx="8.5" cy="10.8" r="1.8"/>
+        <circle cx="-8.5" cy="10.8" r="1.8"/>
+        <circle cx="-13" cy="-4.2" r="1.8"/>
+      </g>
+    </g>
+
+    <!-- Single drifting sakura petal -->
+    <path id="driftPetal" d="M 0,0 C -8,-10 -9,-23 -2,-30 L 0,-24 L 2,-30 C 9,-23 8,-10 0,0 Z" fill="url(#petalLight)"/>
+  </defs>
+
+  <!-- Handmade washi paper base + Asanoha pattern + soft glows -->
+  <rect width="1920" height="1080" fill="url(#washiBase)"/>
+  <rect width="1920" height="1080" fill="url(#asanohaBg)"/>
+  <rect width="1920" height="1080" fill="url(#crimsonSun)"/>
+  <rect width="1920" height="1080" fill="url(#goldMist)"/>
+
+  <!-- Soft gold-leaf cloud ribbons (kumo) -->
+  <g fill="#d4a373" fill-opacity="0.11">
+    <path d="M -40 160 Q 180 120 390 155 Q 520 175 610 140 Q 490 215 260 210 Q 90 205 -40 230 Z"/>
+    <path d="M 1220 910 Q 1450 860 1690 895 Q 1820 915 1960 885 L 1960 980 Q 1730 960 1490 975 Q 1340 985 1220 910 Z"/>
+  </g>
+
+  <!-- Vermilion-rose sun disc with delicate gold rim -->
+  <circle cx="1510" cy="255" r="168" fill="#e11d48" fill-opacity="0.11"/>
+  <circle cx="1510" cy="255" r="168" fill="none" stroke="#d4a373" stroke-opacity="0.34" stroke-width="1.5"/>
+  <circle cx="1510" cy="255" r="192" fill="none" stroke="#d4a373" stroke-opacity="0.18" stroke-dasharray="5 9" stroke-width="1.2"/>
+
+  <!-- Sweeping sumi-ink cherry branch from upper-right -->
+  <g fill="none" stroke="#4a2933" stroke-linecap="round" stroke-linejoin="round">
+    <path d="M 1950 70 C 1740 145 1565 250 1350 318 C 1225 358 1110 382 995 435" stroke-width="13" stroke-opacity="0.62"/>
+    <path d="M 1640 198 C 1555 280 1495 362 1410 462" stroke-width="7.5" stroke-opacity="0.54"/>
+    <path d="M 1455 285 C 1385 215 1310 170 1210 142" stroke-width="6" stroke-opacity="0.5"/>
+    <path d="M 1245 352 C 1175 415 1118 468 1068 532" stroke-width="5" stroke-opacity="0.46"/>
+    <path d="M 1780 135 C 1720 230 1695 310 1658 395" stroke-width="5.5" stroke-opacity="0.48"/>
+  </g>
+
+  <!-- Blossoming sakura clusters along the branch -->
+  <use href="#sakuraFlower" transform="translate(1735 162) scale(1.22) rotate(14)"/>
+  <use href="#sakuraFlower" transform="translate(1615 215) scale(1.38) rotate(-18)"/>
+  <use href="#sakuraFlower" transform="translate(1525 268) scale(1.08) rotate(32)"/>
+  <use href="#sakuraFlower" transform="translate(1410 308) scale(1.3) rotate(-8)"/>
+  <use href="#sakuraFlower" transform="translate(1288 348) scale(1.02) rotate(22)"/>
+  <use href="#sakuraFlower" transform="translate(1152 385) scale(0.95) rotate(-25)"/>
+  <use href="#sakuraFlower" transform="translate(1032 426) scale(0.84) rotate(16)"/>
+  <use href="#sakuraFlower" transform="translate(1432 442) scale(1.06) rotate(-12)"/>
+  <use href="#sakuraFlower" transform="translate(1512 365) scale(0.88) rotate(40)"/>
+  <use href="#sakuraFlower" transform="translate(1265 168) scale(0.92) rotate(-32)"/>
+  <use href="#sakuraFlower" transform="translate(1355 212) scale(0.8) rotate(11)"/>
+  <use href="#sakuraFlower" transform="translate(1672 355) scale(0.9) rotate(28)"/>
+  <use href="#sakuraFlower" transform="translate(1105 496) scale(0.78) rotate(-20)"/>
+
+  <!-- Drifting sakura petals across the washi canvas -->
+  <use href="#driftPetal" transform="translate(910 330) scale(0.85) rotate(-42)" opacity="0.72"/>
+  <use href="#driftPetal" transform="translate(760 475) scale(0.72) rotate(28)" opacity="0.64"/>
+  <use href="#driftPetal" transform="translate(620 265) scale(0.65) rotate(64)" opacity="0.58"/>
+  <use href="#driftPetal" transform="translate(465 565) scale(0.82) rotate(-26)" opacity="0.62"/>
+  <use href="#driftPetal" transform="translate(1240 620) scale(0.78) rotate(48)" opacity="0.66"/>
+  <use href="#driftPetal" transform="translate(1040 735) scale(0.7) rotate(-55)" opacity="0.56"/>
+  <use href="#driftPetal" transform="translate(835 820) scale(0.9) rotate(19)" opacity="0.52"/>
+  <use href="#driftPetal" transform="translate(310 345) scale(0.64) rotate(-68)" opacity="0.54"/>
+  <use href="#driftPetal" transform="translate(1545 690) scale(0.86) rotate(-30)" opacity="0.6"/>
+  <use href="#driftPetal" transform="translate(1365 845) scale(0.74) rotate(36)" opacity="0.5"/>
+  <use href="#driftPetal" transform="translate(215 745) scale(0.76) rotate(42)" opacity="0.58"/>
+
+  <!-- Scattered fine gold-leaf flakes (sunago) -->
+  <g fill="#d4a373" fill-opacity="0.42">
+    <rect x="1480" y="128" width="6" height="6" transform="rotate(24 1480 128)"/>
+    <rect x="1310" y="268" width="5" height="5" transform="rotate(48 1310 268)"/>
+    <rect x="1120" y="572" width="4.5" height="4.5" transform="rotate(15 1120 572)"/>
+    <rect x="860" y="388" width="4" height="4" transform="rotate(35 860 388)"/>
+    <rect x="420" y="210" width="5" height="5" transform="rotate(62 420 210)"/>
+    <rect x="260" y="860" width="6" height="6" transform="rotate(18 260 860)"/>
+    <rect x="1690" y="540" width="5" height="5" transform="rotate(42 1690 540)"/>
+  </g>
+
+  <!-- Subtle vermilion hanko stamp in bottom-left -->
+  <g transform="translate(76, 944)" opacity="0.34">
+    <rect x="0" y="0" width="48" height="48" rx="6" fill="none" stroke="#e11d48" stroke-width="2.4"/>
+    <path d="M 14 14 H 34 M 24 14 V 35 M 15 24 H 33 M 17 34 Q 24 30 31 34" fill="none" stroke="#e11d48" stroke-width="2.1" stroke-linecap="round"/>
+  </g>
+</svg>

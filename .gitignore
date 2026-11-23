@@ -1,0 +1,33 @@
+# Project local instructions, memory, agent team configs & verification tests
+/AGENTS.md
+/MEMORY.md
+.kt/
+tests/
+
+# Upstream KohakuTerrarium reference clone
+KohakuTerrarium/
+
+# Python artifacts
+__pycache__/
+*.py[cod]
+*$py.class
+*.egg-info/
+.eggs/
+dist/
+build/
+.pytest_cache/
+.ruff_cache/
+.mypy_cache/
+.venv/
+venv/
+
+# Frontend / Node artifacts
+node_modules/
+*.tsbuildinfo
+
+# Logs, reports, temp & OS files
+*.log
+tmp/
+.tmp/
+.DS_Store
+Thumbs.db

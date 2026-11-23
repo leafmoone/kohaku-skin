@@ -1,0 +1,16 @@
+{
+  "id": "sakura-washi",
+  "name": "和纸绯樱 · Sakura Washi",
+  "version": "1.0.0",
+  "author": "Kohaku Lab",
+  "description": "Warm Japanese handmade washi paper with vermilion-sakura crimson, gold-leaf Asanoha geometry, and petal-glow editorial bubbles.",
+  "color_mode": "auto",
+  "entry_css": "theme.css",
+  "default_background": "assets/bg-sakura-washi.svg",
+  "tokens": {
+    "--ks-accent": "#e11d48",
+    "--ks-accent-secondary": "#d4a373",
+    "--ks-radius": "0.625rem",
+    "--ks-font-sans": "\"Noto Serif SC\", \"Hiragino Mincho ProN\", \"Source Serif 4\", \"Songti SC\", Georgia, serif"
+  }
+}

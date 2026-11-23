@@ -1,0 +1,783 @@
+/*
+ * kohaku-skin: Semantic CSS Token Bridge, Background Layer & Extension UI Styles.
+ *
+ * CRITICAL INVARIANT:
+ * When neither html[data-ks-active="true"] nor html[data-ks-bg-active="true"] is set,
+ * zero host styles are modified so stock KohakuTerrarium renders identically to native.
+ */
+
+/* ============================================================================
+ * 1. Background Image Layer (#kohaku-skin-bg-root)
+ * ========================================================================== */
+
+#kohaku-skin-bg-root {
+  position: fixed;
+  inset: 0;
+  z-index: 0;
+  pointer-events: none;
+  overflow: hidden;
+}
+
+#kohaku-skin-bg-root .ks-bg-image {
+  position: absolute;
+  inset: 0;
+  background-image: var(--ks-bg-image, none);
+  background-size: var(--ks-bg-fit, cover);
+  background-position: center center;
+  background-repeat: no-repeat;
+  transition: opacity 0.25s ease;
+}
+
+#kohaku-skin-bg-root .ks-bg-dimmer {
+  position: absolute;
+  inset: 0;
+  background: rgba(8, 10, 14, var(--ks-bg-dim, 0.24));
+  transition: background-color 0.2s ease;
+}
+
+html[data-ks-bg-active="true"] #app {
+  position: relative;
+  z-index: 1;
+}
+
+/* ============================================================================
+ * 2. Semantic Skin Token Bridge (html[data-ks-active="true"])
+ * Maps --ks-* skin tokens onto KT's --color-*, --kt-shell-*, --v2-*, --el-*,
+ * --kt-color-*, typography, conversation, and composer tokens.
+ * ========================================================================== */
+
+html[data-ks-active="true"] {
+  --color-bg: var(--ks-bg, #f2eee8);
+  --color-surface: var(--ks-surface, #ffffff);
+  --color-surface-alt: var(--ks-surface-alt, #efebe5);
+  --color-border: var(--ks-border, #e5dfd7);
+  --color-text: var(--ks-text, #2e2a26);
+  --color-text-muted: var(--ks-text-muted, #6c655d);
+  --color-text-faint: var(--ks-text-faint, #8f8880);
+
+  --kt-shell-rail: var(--ks-panel, var(--ks-chrome, #dcd5cb));
+  --kt-shell-strip: var(--ks-chrome, #e3ddd5);
+  --kt-shell-tab-active: var(--ks-bg, #f2eee8);
+
+  --font-sans: var(--ks-font-sans, "Inter", system-ui, -apple-system, sans-serif);
+  --font-mono: var(--ks-font-mono, "JetBrains Mono", "Fira Code", ui-monospace, monospace);
+
+  --kt-color-iolite: var(--ks-accent, #5a4fcf);
+  --kt-color-iolite-light: color-mix(in srgb, var(--ks-accent, #5a4fcf) 34%, white);
+  --kt-color-iolite-shadow: color-mix(in srgb, var(--ks-accent, #5a4fcf) 72%, black);
+  --kt-color-aquamarine: var(--ks-accent-secondary, #4c9989);
+  --kt-color-aquamarine-light: color-mix(in srgb, var(--ks-accent-secondary, #4c9989) 34%, white);
+  --kt-color-aquamarine-shadow: color-mix(in srgb, var(--ks-accent-secondary, #4c9989) 72%, black);
+
+  --el-color-primary: var(--ks-accent, #5a4fcf);
+  --el-color-primary-light-3: color-mix(in srgb, var(--ks-accent, #5a4fcf) 70%, white);
+  --el-color-primary-light-5: color-mix(in srgb, var(--ks-accent, #5a4fcf) 50%, white);
+  --el-color-primary-light-7: color-mix(in srgb, var(--ks-accent, #5a4fcf) 30%, white);
+  --el-color-primary-light-9: color-mix(in srgb, var(--ks-accent, #5a4fcf) 12%, transparent);
+  --el-color-primary-dark-2: color-mix(in srgb, var(--ks-accent, #5a4fcf) 80%, black);
+  --el-bg-color: var(--ks-surface, #ffffff);
+  --el-bg-color-overlay: var(--ks-float, var(--ks-surface, #ffffff));
+  --el-bg-color-page: var(--ks-bg, #f2eee8);
+  --el-fill-color-blank: var(--ks-surface, #ffffff);
+  --el-fill-color: var(--ks-surface-alt, #efebe5);
+  --el-fill-color-light: var(--ks-surface-alt, #efebe5);
+  --el-fill-color-lighter: var(--ks-bg, #f2eee8);
+  --el-border-color: var(--ks-border, #e5dfd7);
+  --el-border-color-light: var(--ks-border, #e5dfd7);
+  --el-border-color-lighter: var(--ks-border, #e5dfd7);
+  --el-text-color-primary: var(--ks-text, #2e2a26);
+  --el-text-color-regular: var(--ks-text, #2e2a26);
+  --el-text-color-secondary: var(--ks-text-muted, #6c655d);
+  --el-text-color-placeholder: var(--ks-text-faint, #8f8880);
+}
+
+html.dark[data-ks-active="true"] {
+  --color-bg: var(--ks-bg, #1a1816);
+  --color-surface: var(--ks-surface, #252220);
+  --color-surface-alt: var(--ks-surface-alt, #1e1c1a);
+  --color-border: var(--ks-border, #3d3835);
+  --color-text: var(--ks-text, #e8e0d8);
+  --color-text-muted: var(--ks-text-muted, #8a8078);
+  --color-text-faint: var(--ks-text-faint, #5a5550);
+
+  --kt-shell-rail: var(--ks-panel, var(--ks-chrome, #221f1d));
+  --kt-shell-strip: var(--ks-chrome, #1a1816);
+  --kt-shell-tab-active: var(--ks-bg, #1a1816);
+
+  --el-bg-color: var(--ks-surface, #252220);
+  --el-bg-color-overlay: var(--ks-float, var(--ks-surface, #252220));
+  --el-bg-color-page: var(--ks-bg, #1a1816);
+  --el-fill-color-blank: var(--ks-surface, #252220);
+  --el-fill-color: var(--ks-surface-alt, #1e1c1a);
+  --el-fill-color-light: var(--ks-surface-alt, #1e1c1a);
+  --el-fill-color-lighter: var(--ks-bg, #1a1816);
+  --el-border-color: var(--ks-border, #3d3835);
+  --el-border-color-light: var(--ks-border, #3d3835);
+  --el-border-color-lighter: var(--ks-border, #3d3835);
+  --el-text-color-primary: var(--ks-text, #e8e0d8);
+  --el-text-color-regular: var(--ks-text, #e8e0d8);
+  --el-text-color-secondary: var(--ks-text-muted, #8a8078);
+  --el-text-color-placeholder: var(--ks-text-faint, #5a5550);
+}
+
+html[data-ks-active="true"] .kt-v2 {
+  --v2-chrome: var(--ks-chrome, var(--kt-shell-tab-active, #eeeae4));
+  --v2-canvas: var(--ks-bg, #fbfaf8);
+  --v2-panel: var(--ks-panel, var(--ks-surface-alt, #f2eee8));
+  --v2-card: var(--ks-card, var(--ks-surface, #ffffff));
+  --v2-float: var(--ks-float, var(--ks-surface, #ffffff));
+  --v2-line: var(--ks-border, #e5dfd7);
+  --v2-line-strong: var(--ks-border-strong, var(--ks-border, #cdc5ba));
+}
+
+html.dark[data-ks-active="true"] .kt-v2 {
+  --v2-chrome: var(--ks-chrome, #1a1816);
+  --v2-canvas: var(--ks-bg, #221f1d);
+  --v2-panel: var(--ks-panel, var(--ks-surface-alt, #2a2724));
+  --v2-card: var(--ks-card, var(--ks-surface, #2a2724));
+  --v2-float: var(--ks-float, var(--ks-surface, #2e2b28));
+  --v2-line: var(--ks-border, #3a3632);
+  --v2-line-strong: var(--ks-border-strong, var(--ks-border, #4a4540));
+}
+
+html[data-ks-active="true"] .kt-v2 .kt-conversation-host,
+html.dark[data-ks-active="true"] .kt-v2 .kt-conversation-host {
+  --kt-conversation-text: var(--ks-text, var(--color-text));
+  --kt-conversation-muted: var(--ks-text-muted, var(--color-text-muted));
+  --kt-conversation-reasoning-text: var(--ks-text-muted, var(--color-text-muted));
+  --kt-conversation-surface: var(--ks-user-bubble, var(--ks-surface-alt, var(--color-surface-alt)));
+  --kt-conversation-surface-raised: var(--ks-card, var(--ks-surface, var(--color-surface)));
+  --kt-conversation-border: var(--ks-border, var(--color-border));
+  --kt-conversation-accent: var(--ks-accent, #5a4fcf);
+  --kt-conversation-accent-tint: var(--ks-accent, #5a4fcf);
+  --color-text: var(--ks-text, var(--color-text));
+}
+
+html[data-ks-active="true"] .kt-chat-composer,
+html.dark[data-ks-active="true"] .kt-chat-composer {
+  --kc-iolite: var(--ks-accent, #5a4fcf);
+  --kc-iolite-shadow: color-mix(in srgb, var(--ks-accent, #5a4fcf) 72%, black);
+  --kc-aquamarine: var(--ks-accent-secondary, #4c9989);
+  --kc-text: var(--ks-text, var(--color-text));
+  --kc-placeholder: var(--ks-text-faint, var(--color-text-faint));
+  --kc-surface: var(--ks-surface-alt, var(--color-surface-alt));
+  --kc-border: var(--ks-border, var(--color-border));
+  --kc-focus: color-mix(in srgb, var(--ks-accent, #5a4fcf) 45%, transparent);
+}
+
+html[data-ks-active="true"] .kt-v2-card,
+html[data-ks-active="true"] .card,
+html[data-ks-active="true"] .user-message,
+html[data-ks-active="true"] .kt-conversation-user-bubble,
+html[data-ks-active="true"] .kt-chat-composer__shell {
+  border-radius: var(--ks-radius, 0.75rem);
+}
+
+html[data-ks-active="true"] .user-message,
+html[data-ks-active="true"] .kt-conversation-user-bubble {
+  background: var(--ks-user-bubble, var(--ks-surface-alt, var(--color-surface-alt)));
+}
+
+html[data-ks-active="true"] .kt-rail-pane {
+  background-color: var(--kt-shell-rail);
+  border-color: var(--color-border);
+}
+
+/* ============================================================================
+ * 3. Background Transparency Penetration (html[data-ks-bg-active="true"])
+ * Works both with stock KT (skin Off) and combined with an active skin.
+ * ========================================================================== */
+
+html[data-ks-bg-active="true"] {
+  --ks-eff-bg: var(--ks-bg, #f2eee8);
+  --ks-eff-surface: var(--ks-surface, #ffffff);
+  --ks-eff-surface-alt: var(--ks-surface-alt, #efebe5);
+  --ks-eff-chrome: var(--ks-chrome, #e3ddd5);
+  --ks-eff-rail: var(--ks-panel, #dcd5cb);
+  --ks-eff-panel: var(--ks-panel, #f2eee8);
+  --ks-eff-card: var(--ks-card, #ffffff);
+  --ks-eff-float: var(--ks-float, #ffffff);
+  --ks-eff-user-bubble: var(--ks-user-bubble, #efebe5);
+}
+
+html.dark[data-ks-bg-active="true"] {
+  --ks-eff-bg: var(--ks-bg, #1a1816);
+  --ks-eff-surface: var(--ks-surface, #252220);
+  --ks-eff-surface-alt: var(--ks-surface-alt, #1e1c1a);
+  --ks-eff-chrome: var(--ks-chrome, #1a1816);
+  --ks-eff-rail: var(--ks-panel, #221f1d);
+  --ks-eff-panel: var(--ks-panel, #2a2724);
+  --ks-eff-card: var(--ks-card, #2a2724);
+  --ks-eff-float: var(--ks-float, #2e2b28);
+  --ks-eff-user-bubble: var(--ks-user-bubble, #3a3632);
+}
+
+html[data-ks-bg-active="true"],
+html[data-ks-bg-active="true"] body,
+html[data-ks-bg-active="true"] #app,
+html[data-ks-bg-active="true"] #app > div,
+html[data-ks-bg-active="true"] .kt-macro-shell,
+html[data-ks-bg-active="true"] .kt-compact-shell {
+  background: transparent !important;
+  background-color: transparent !important;
+}
+
+/* Let TabGroup and CompactShell root wrappers reveal the wallpaper gently */
+html[data-ks-bg-active="true"] .kt-macro-shell .bg-warm-50,
+html.dark[data-ks-bg-active="true"] .kt-macro-shell .dark\:bg-warm-950,
+html[data-ks-bg-active="true"] #app > div > .bg-warm-50,
+html.dark[data-ks-bg-active="true"] #app > div > .dark\:bg-warm-950 {
+  background-color: color-mix(
+    in srgb,
+    var(--ks-eff-bg) calc(var(--ks-surface-alpha, 0.78) * 65%),
+    transparent
+  ) !important;
+}
+
+html[data-ks-bg-active="true"] .kt-rail-pane {
+  background: color-mix(
+    in srgb,
+    var(--ks-eff-rail) calc(var(--ks-surface-alpha, 0.78) * 100%),
+    transparent
+  ) !important;
+  backdrop-filter: blur(var(--ks-backdrop-blur, 14px)) saturate(135%);
+  -webkit-backdrop-filter: blur(var(--ks-backdrop-blur, 14px)) saturate(135%);
+}
+
+html[data-ks-bg-active="true"] .kt-tab-strip,
+html[data-ks-bg-active="true"] .kt-macro-shell [class*="bg-[var(--kt-shell-strip)]"] {
+  background: color-mix(
+    in srgb,
+    var(--ks-eff-chrome) calc(var(--ks-surface-alpha, 0.78) * 100%),
+    transparent
+  ) !important;
+  backdrop-filter: blur(var(--ks-backdrop-blur, 14px)) saturate(135%);
+  -webkit-backdrop-filter: blur(var(--ks-backdrop-blur, 14px)) saturate(135%);
+}
+
+html[data-ks-bg-active="true"] .kt-v2 {
+  --v2-chrome: color-mix(
+    in srgb,
+    var(--ks-eff-chrome) calc(var(--ks-surface-alpha, 0.78) * 100%),
+    transparent
+  );
+  --v2-canvas: color-mix(
+    in srgb,
+    var(--ks-eff-bg) calc(var(--ks-surface-alpha, 0.78) * 92%),
+    transparent
+  );
+  --v2-panel: color-mix(
+    in srgb,
+    var(--ks-eff-panel) calc(var(--ks-surface-alpha, 0.78) * 100%),
+    transparent
+  );
+  --v2-card: color-mix(
+    in srgb,
+    var(--ks-eff-card) calc(var(--ks-surface-alpha, 0.78) * 100%),
+    transparent
+  );
+  --v2-float: color-mix(
+    in srgb,
+    var(--ks-eff-float) calc(var(--ks-surface-alpha, 0.78) * 100%),
+    transparent
+  );
+}
+
+html[data-ks-bg-active="true"] .kt-v2.kt-v2-canvas,
+html[data-ks-bg-active="true"] .kt-v2 .kt-v2-canvas,
+html[data-ks-bg-active="true"] .kt-v2-chrome,
+html[data-ks-bg-active="true"] .kt-v2-panel,
+html[data-ks-bg-active="true"] .kt-v2-card,
+html[data-ks-bg-active="true"] .kt-v2-float {
+  backdrop-filter: blur(var(--ks-backdrop-blur, 14px)) saturate(135%);
+  -webkit-backdrop-filter: blur(var(--ks-backdrop-blur, 14px)) saturate(135%);
+}
+
+html[data-ks-bg-active="true"] .card {
+  background: color-mix(
+    in srgb,
+    var(--ks-eff-card) calc(var(--ks-surface-alpha, 0.78) * 100%),
+    transparent
+  ) !important;
+  backdrop-filter: blur(var(--ks-backdrop-blur, 14px)) saturate(135%);
+  -webkit-backdrop-filter: blur(var(--ks-backdrop-blur, 14px)) saturate(135%);
+}
+
+html[data-ks-bg-active="true"] .user-message,
+html[data-ks-bg-active="true"] .kt-conversation-user-bubble {
+  background: color-mix(
+    in srgb,
+    var(--ks-eff-user-bubble) calc(var(--ks-surface-alpha, 0.78) * 100%),
+    transparent
+  ) !important;
+  backdrop-filter: blur(var(--ks-backdrop-blur, 14px)) saturate(135%);
+  -webkit-backdrop-filter: blur(var(--ks-backdrop-blur, 14px)) saturate(135%);
+}
+
+/* ============================================================================
+ * 4. Scoped Settings Section Styles (.ks-settings)
+ * Uses KT public THEME_TOKENS so it blends cleanly in light/dark/skinned modes.
+ * ========================================================================== */
+
+.ks-settings {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+  color: var(--color-text, #2e2a26);
+  font-size: var(--kt-fs-body, 0.875rem);
+}
+
+.ks-settings-banner {
+  padding: 0.75rem 1rem;
+  border-radius: 0.625rem;
+  border: 1px solid var(--color-border, #e5dfd7);
+  background: var(--color-surface-alt, #efebe5);
+  color: var(--color-text-muted, #6c655d);
+  font-size: var(--kt-fs-caption, 0.75rem);
+}
+
+.ks-settings-toolbar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.ks-settings-hidden-input {
+  display: none;
+}
+
+.ks-settings-skin-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(230px, 1fr));
+  gap: 0.75rem;
+  padding: 0.75rem 0 0.25rem;
+}
+
+.ks-settings-skin-card {
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  gap: 0.625rem;
+  padding: 0.85rem;
+  border-radius: 0.75rem;
+  border: 1px solid var(--color-border, #e5dfd7);
+  background: var(--color-surface, #ffffff);
+  transition: border-color 0.15s ease, box-shadow 0.15s ease, transform 0.15s ease;
+}
+
+.ks-settings-skin-card:hover {
+  border-color: var(--kt-color-iolite, #5a4fcf);
+}
+
+.ks-settings-skin-card--active {
+  border-color: var(--kt-color-iolite, #5a4fcf);
+  box-shadow: 0 0 0 2px color-mix(in srgb, var(--kt-color-iolite, #5a4fcf) 22%, transparent);
+}
+
+.ks-settings-skin-head {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 0.5rem;
+}
+
+.ks-settings-skin-title {
+  font-weight: 600;
+  color: var(--color-text, #2e2a26);
+  line-height: 1.3;
+  word-break: break-word;
+}
+
+.ks-settings-skin-meta {
+  font-size: var(--kt-fs-caption, 0.75rem);
+  color: var(--color-text-muted, #6c655d);
+  margin-top: 0.15rem;
+}
+
+.ks-settings-skin-desc {
+  font-size: var(--kt-fs-caption, 0.75rem);
+  color: var(--color-text-muted, #6c655d);
+  line-height: 1.45;
+  flex: 1;
+}
+
+.ks-settings-badges {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.3rem;
+  flex-shrink: 0;
+}
+
+.ks-settings-badge {
+  display: inline-flex;
+  align-items: center;
+  padding: 0.1rem 0.45rem;
+  border-radius: 999px;
+  font-size: var(--kt-fs-micro, 0.65rem);
+  font-weight: 600;
+  letter-spacing: 0.02em;
+  border: 1px solid var(--color-border, #e5dfd7);
+  background: var(--color-surface-alt, #efebe5);
+  color: var(--color-text-muted, #6c655d);
+  white-space: nowrap;
+}
+
+.ks-settings-badge--active {
+  border-color: color-mix(in srgb, var(--kt-color-iolite, #5a4fcf) 40%, transparent);
+  background: color-mix(in srgb, var(--kt-color-iolite, #5a4fcf) 14%, transparent);
+  color: var(--kt-color-iolite, #5a4fcf);
+}
+
+.ks-settings-badge--custom {
+  border-color: color-mix(in srgb, var(--kt-color-aquamarine, #4c9989) 40%, transparent);
+  background: color-mix(in srgb, var(--kt-color-aquamarine, #4c9989) 14%, transparent);
+  color: var(--kt-color-aquamarine, #4c9989);
+}
+
+.ks-settings-card-actions {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.5rem;
+  padding-top: 0.25rem;
+}
+
+.ks-settings-dir-hint {
+  margin-top: 0.5rem;
+  font-size: var(--kt-fs-caption, 0.75rem);
+  color: var(--color-text-faint, #8f8880);
+  font-family: var(--font-mono, monospace);
+}
+
+.ks-settings-segmented {
+  display: inline-flex;
+  flex-wrap: wrap;
+  gap: 0.25rem;
+  padding: 0.2rem;
+  border-radius: 0.5rem;
+  border: 1px solid var(--color-border, #e5dfd7);
+  background: var(--color-surface-alt, #efebe5);
+}
+
+.ks-settings-seg-btn {
+  padding: 0.3rem 0.65rem;
+  border-radius: 0.375rem;
+  font-size: var(--kt-fs-caption, 0.75rem);
+  font-weight: 500;
+  color: var(--color-text-muted, #6c655d);
+  background: transparent;
+  transition: background-color 0.15s ease, color 0.15s ease;
+}
+
+.ks-settings-seg-btn:hover {
+  color: var(--color-text, #2e2a26);
+}
+
+.ks-settings-seg-btn--active {
+  background: var(--color-surface, #ffffff);
+  color: var(--color-text, #2e2a26);
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.08);
+}
+
+.ks-settings-url-row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.5rem;
+  margin-top: 0.45rem;
+}
+
+.ks-settings-input {
+  flex: 1 1 200px;
+  min-width: 0;
+  padding: 0.4rem 0.65rem;
+  border-radius: 0.5rem;
+  border: 1px solid var(--color-border, #e5dfd7);
+  background: var(--color-surface, #ffffff);
+  color: var(--color-text, #2e2a26);
+  font-size: var(--kt-fs-caption, 0.75rem);
+  outline: none;
+}
+
+.ks-settings-input:focus {
+  border-color: var(--kt-color-iolite, #5a4fcf);
+}
+
+.ks-settings-slider-wrap {
+  display: flex;
+  align-items: center;
+  gap: 0.65rem;
+  min-width: 170px;
+}
+
+.ks-settings-slider {
+  flex: 1;
+  accent-color: var(--kt-color-iolite, #5a4fcf);
+  cursor: pointer;
+}
+
+.ks-settings-slider-val {
+  min-width: 3rem;
+  text-align: right;
+  font-size: var(--kt-fs-caption, 0.75rem);
+  font-family: var(--font-mono, monospace);
+  color: var(--color-text-muted, #6c655d);
+}
+
+/* ============================================================================
+ * 5. Native Session Floating Dock Integration (.ks-dock-*)
+ * Injects a standalone icon button into [data-test="v2-dock"] > .kt-v2-float
+ * and renders a pure-text popover matching KT's WidgetFrame.vue.
+ * ========================================================================== */
+
+[data-test="v2-dock"] > .kt-v2-float:not([data-test="v2-dock-more-menu"]) > .ks-dock-slot {
+  order: 1;
+  display: inline-flex;
+  align-items: center;
+}
+
+[data-test="v2-dock"] > .kt-v2-float:not([data-test="v2-dock-more-menu"]) > [data-test="v2-dock-more"] {
+  order: 2;
+}
+
+[data-test="v2-dock"] > .kt-v2-float:not([data-test="v2-dock-more-menu"]) > [data-test="v2-dock-more"] + button {
+  order: 3;
+}
+
+[data-test="v2-dock"] > .kt-v2-float:not([data-test="v2-dock-more-menu"]):has([data-test="v2-dock-pill"]) > .ks-dock-slot {
+  display: none !important;
+}
+
+.ks-dock-icon-btn {
+  height: 1.75rem;
+  width: 1.75rem;
+  border-radius: 9999px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--color-text-muted, #6c655d);
+  background: transparent;
+  transition: background-color 0.15s ease, color 0.15s ease;
+}
+
+.ks-dock-icon-btn:hover {
+  background: color-mix(in srgb, var(--color-text, #2e2a26) 8%, transparent);
+  color: var(--color-text, #2e2a26);
+}
+
+.ks-dock-icon-btn--active {
+  color: var(--kt-color-iolite, #5a4fcf);
+  background: color-mix(in srgb, var(--kt-color-iolite, #5a4fcf) 12%, transparent);
+}
+
+.ks-dock-icon-btn--active:hover {
+  color: var(--kt-color-iolite, #5a4fcf);
+  background: color-mix(in srgb, var(--kt-color-iolite, #5a4fcf) 18%, transparent);
+}
+
+.ks-dock-popover {
+  width: 22rem;
+  max-width: calc(100vw - 2rem);
+  max-height: min(62vh, 28rem);
+  display: flex;
+  flex-direction: column;
+  border-radius: 0.75rem;
+  border: 1px solid var(--v2-line-strong, var(--color-border, #cdc5ba));
+  background: var(--v2-float, var(--color-surface, #ffffff));
+  color: var(--color-text, #2e2a26);
+  box-shadow: 0 14px 36px rgba(0, 0, 0, 0.22);
+  overflow: hidden;
+  font-family: var(--font-sans, system-ui, sans-serif);
+}
+
+html[data-ks-bg-active="true"] .ks-dock-popover {
+  background: color-mix(
+    in srgb,
+    var(--ks-eff-float, var(--color-surface, #ffffff)) calc(var(--ks-surface-alpha, 0.78) * 100%),
+    transparent
+  );
+  backdrop-filter: blur(var(--ks-backdrop-blur, 14px)) saturate(135%);
+  -webkit-backdrop-filter: blur(var(--ks-backdrop-blur, 14px)) saturate(135%);
+}
+
+.ks-dock-popover-header {
+  height: 2.25rem;
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.5rem;
+  padding: 0 0.75rem;
+  border-bottom: 1px solid var(--v2-line, var(--color-border, #e5dfd7));
+  background: var(--v2-chrome, var(--color-surface-alt, #efebe5));
+}
+
+.ks-dock-popover-title {
+  font-size: var(--kt-fs-caption, 0.75rem);
+  font-weight: 600;
+  color: var(--color-text, #2e2a26);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.ks-dock-popover-actions {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  flex-shrink: 0;
+}
+
+.ks-dock-text-btn {
+  padding: 0.2rem 0.45rem;
+  border-radius: 0.375rem;
+  font-size: var(--kt-fs-caption, 0.75rem);
+  font-weight: 500;
+  color: var(--color-text-muted, #6c655d);
+  transition: background-color 0.12s ease, color 0.12s ease;
+}
+
+.ks-dock-text-btn:hover {
+  background: color-mix(in srgb, var(--color-text, #2e2a26) 9%, transparent);
+  color: var(--color-text, #2e2a26);
+}
+
+.ks-dock-popover-body {
+  display: flex;
+  flex-direction: column;
+  gap: 0.85rem;
+  padding: 0.85rem;
+  overflow-y: auto;
+  min-height: 0;
+}
+
+.ks-dock-section {
+  display: flex;
+  flex-direction: column;
+  gap: 0.45rem;
+}
+
+.ks-dock-section-head {
+  font-size: var(--kt-fs-micro, 0.65rem);
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: var(--color-text-muted, #6c655d);
+}
+
+.ks-dock-skin-list {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.35rem;
+}
+
+.ks-dock-chip {
+  max-width: 100%;
+  padding: 0.32rem 0.65rem;
+  border-radius: 0.5rem;
+  border: 1px solid var(--color-border, #e5dfd7);
+  background: var(--color-surface-alt, #efebe5);
+  color: var(--color-text, #2e2a26);
+  font-size: var(--kt-fs-caption, 0.75rem);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  transition: border-color 0.12s ease, background-color 0.12s ease;
+}
+
+.ks-dock-chip:hover:not(:disabled) {
+  border-color: var(--kt-color-iolite, #5a4fcf);
+}
+
+.ks-dock-chip--active {
+  border-color: var(--kt-color-iolite, #5a4fcf);
+  background: color-mix(in srgb, var(--kt-color-iolite, #5a4fcf) 16%, transparent);
+  color: var(--color-text, #2e2a26);
+  font-weight: 600;
+}
+
+.ks-dock-mode-row {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 0.3rem;
+}
+
+.ks-dock-mode-btn {
+  padding: 0.34rem 0.4rem;
+  border-radius: 0.45rem;
+  border: 1px solid var(--color-border, #e5dfd7);
+  background: var(--color-surface-alt, #efebe5);
+  color: var(--color-text-muted, #6c655d);
+  font-size: var(--kt-fs-caption, 0.75rem);
+  font-weight: 500;
+  text-align: center;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  transition: border-color 0.12s ease, background-color 0.12s ease, color 0.12s ease;
+}
+
+.ks-dock-mode-btn--active {
+  border-color: var(--kt-color-iolite, #5a4fcf);
+  background: color-mix(in srgb, var(--kt-color-iolite, #5a4fcf) 16%, transparent);
+  color: var(--color-text, #2e2a26);
+  font-weight: 600;
+}
+
+.ks-dock-btn-row {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+}
+
+.ks-dock-btn {
+  flex: 1;
+  padding: 0.36rem 0.6rem;
+  border-radius: 0.45rem;
+  border: 1px solid var(--color-border, #e5dfd7);
+  background: var(--color-surface-alt, #efebe5);
+  color: var(--color-text, #2e2a26);
+  font-size: var(--kt-fs-caption, 0.75rem);
+  font-weight: 500;
+  text-align: center;
+  transition: border-color 0.12s ease, background-color 0.12s ease;
+}
+
+.ks-dock-btn:hover:not(:disabled) {
+  border-color: var(--kt-color-iolite, #5a4fcf);
+}
+
+.ks-dock-btn:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+}
+
+.ks-dock-slider-row {
+  display: flex;
+  align-items: center;
+  gap: 0.55rem;
+}
+
+.ks-dock-slider-label {
+  width: 4.2rem;
+  font-size: var(--kt-fs-caption, 0.75rem);
+  color: var(--color-text-muted, #6c655d);
+  flex-shrink: 0;
+}
+
+.ks-dock-slider-input {
+  flex: 1;
+  min-width: 0;
+  accent-color: var(--kt-color-iolite, #5a4fcf);
+  cursor: pointer;
+}
+
+.ks-dock-slider-num {
+  width: 2.6rem;
+  text-align: right;
+  font-size: var(--kt-fs-micro, 0.65rem);
+  font-family: var(--font-mono, monospace);
+  color: var(--color-text-muted, #6c655d);
+  flex-shrink: 0;
+}
