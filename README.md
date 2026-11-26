@@ -93,3 +93,8 @@ Setting these tokens automatically skins KohakuTerrarium's shell rail, tab strip
 | `--ks-surface-alpha` | Translucent surface opacity (`0.20`–`1.00`, controlled by UI) |
 | `--ks-backdrop-blur` | Glass backdrop blur radius (`0px`–`32px`, controlled by UI) |
 | `--ks-bg-dim` | Background dimming veil (`0.00`–`0.85`, controlled by UI) |
+| `--ks-readability` | Frosted reading plate and session border contrast strength (`0.00`–`1.00`, controlled by UI) |
+
+## License
+
+Released under the [MIT License](LICENSE). Built as an extension package for [KohakuTerrarium](https://github.com/Kohaku-Lab/KohakuTerrarium).

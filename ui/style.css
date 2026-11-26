@@ -324,8 +324,6 @@ html[data-ks-bg-active="true"] .kt-v2 {
   --v2-line-strong: var(--ks-session-border-strong);
 }
 
-html[data-ks-bg-active="true"] .kt-v2.kt-v2-canvas,
-html[data-ks-bg-active="true"] .kt-v2 .kt-v2-canvas,
 html[data-ks-bg-active="true"] .kt-v2-chrome,
 html[data-ks-bg-active="true"] .kt-v2-panel,
 html[data-ks-bg-active="true"] .kt-v2-card,
@@ -452,8 +450,10 @@ html[data-ks-bg-active="true"] .kt-conversation-host .md-content hr {
   border-color: var(--ks-session-border-strong) !important;
 }
 
-/* Chat composer shell clarity and focus contrast */
+/* Chat composer shell clarity and focus contrast (blur isolated to ::before so fixed drawers never trap) */
 html[data-ks-bg-active="true"] .kt-chat-composer__shell {
+  position: relative;
+  z-index: 0;
   background: color-mix(
     in srgb,
     var(--ks-eff-float)
@@ -462,8 +462,23 @@ html[data-ks-bg-active="true"] .kt-chat-composer__shell {
   ) !important;
   border: 1px solid var(--ks-session-border-strong) !important;
   box-shadow: inset 0 1px 0 var(--ks-session-inner-highlight), var(--ks-session-shadow);
+  backdrop-filter: none;
+  -webkit-backdrop-filter: none;
+}
+
+html[data-ks-bg-active="true"] .kt-chat-composer__shell::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  pointer-events: none;
+  z-index: -1;
   backdrop-filter: blur(var(--ks-backdrop-blur, 14px)) saturate(135%);
   -webkit-backdrop-filter: blur(var(--ks-backdrop-blur, 14px)) saturate(135%);
+}
+
+html[data-ks-bg-active="true"] .kt-chat-composer__shell:has(.el-overlay:not([style*="display: none"])) {
+  z-index: auto !important;
 }
 
 html[data-ks-bg-active="true"] .kt-chat-composer__shell:focus-within {
@@ -471,6 +486,24 @@ html[data-ks-bg-active="true"] .kt-chat-composer__shell:focus-within {
   box-shadow:
     0 0 0 2px color-mix(in srgb, var(--kc-focus, var(--kt-color-iolite, #5a4fcf)) 38%, transparent),
     var(--ks-session-shadow);
+}
+
+/* Release fixed-position containing blocks on ancestors whenever an inline Element Plus overlay/drawer is open */
+html[data-ks-active="true"] #app :has(.el-overlay:not([style*="display: none"])),
+html[data-ks-bg-active="true"] #app :has(.el-overlay:not([style*="display: none"])) {
+  backdrop-filter: none !important;
+  -webkit-backdrop-filter: none !important;
+  filter: none !important;
+  transform: none !important;
+  contain: none !important;
+}
+
+/* Match model-switcher drawer surface and edge clarity over custom wallpapers */
+html[data-ks-bg-active="true"] .el-drawer.model-switcher-drawer {
+  background-color: color-mix(in srgb, var(--ks-eff-panel) 94%, transparent) !important;
+  border-left: 1px solid var(--ks-session-border-strong) !important;
+  backdrop-filter: blur(var(--ks-backdrop-blur, 14px)) saturate(135%);
+  -webkit-backdrop-filter: blur(var(--ks-backdrop-blur, 14px)) saturate(135%);
 }
 
 /* Frosted reading plates for unbubbled assistant and channel messages */
