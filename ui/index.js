@@ -6,7 +6,11 @@
 
 import { defineExtension } from "@kohakuterrarium/ui-sdk"
 
-import { createDockPanelControl, createDockSkinPanel } from "./src/DockSkinPanel.js"
+import {
+  createDockPanelControl,
+  createDockSkinPanel,
+  createStatusSkinItem,
+} from "./src/DockSkinPanel.js"
 import { createSkinEngine } from "./src/engine.js"
 import { createSettingsView } from "./src/SettingsView.js"
 
@@ -20,6 +24,7 @@ export default defineExtension((kt) => {
   })
 
   kt.registerOverlay("stage", createDockSkinPanel(engine, panelControl), {})
+  kt.registerStatusItem("quick-toggle", createStatusSkinItem(panelControl), {})
   kt.registerSettingsSection("preferences", createSettingsView(engine), {})
   kt.registerCommand("toggle-switcher", () => {
     panelControl.toggle()

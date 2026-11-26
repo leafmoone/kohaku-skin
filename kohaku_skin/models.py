@@ -51,6 +51,7 @@ class BackgroundState(TypedDict):
     dim: float
     blur: int
     surface_alpha: float
+    readability_scrim: float
 
 
 class PreferencesState(TypedDict):
@@ -121,6 +122,7 @@ class BackgroundSettings:
     dim: float
     blur: int
     surface_alpha: float
+    readability_scrim: float
 
     def to_state(self) -> BackgroundState:
         return {
@@ -131,6 +133,7 @@ class BackgroundSettings:
             "dim": self.dim,
             "blur": self.blur,
             "surface_alpha": self.surface_alpha,
+            "readability_scrim": self.readability_scrim,
         }
 
 
@@ -151,7 +154,7 @@ class UserSkinPreferences:
 DEFAULT_PREFERENCES = UserSkinPreferences(
     skin_enabled=False,
     active_skin_id=None,
-    background=BackgroundSettings("skin", "", "", "cover", 0.24, 14, 0.76),
+    background=BackgroundSettings("skin", "", "", "cover", 0.24, 14, 0.76, readability_scrim=0.55),
 )
 
 
@@ -273,7 +276,7 @@ def parse_background(
     value: object, current: BackgroundSettings, allow_uploaded_file: bool
 ) -> BackgroundSettings:
     data = object_fields(value, "background")
-    fields = ("mode", "custom_url", "fit", "dim", "blur", "surface_alpha")
+    fields = ("mode", "custom_url", "fit", "dim", "blur", "surface_alpha", "readability_scrim")
     require_fields(data, (*fields, "uploaded_file") if allow_uploaded_file else fields)
     uploaded_file = require_string(data.get("uploaded_file", current.uploaded_file), "uploaded_file")
     if uploaded_file:
@@ -289,6 +292,7 @@ def parse_background(
         dim=_decimal(data.get("dim", current.dim), 0.0, 0.85, "dim"),
         blur=blur,
         surface_alpha=_decimal(data.get("surface_alpha", current.surface_alpha), 0.20, 1.0, "surface_alpha"),
+        readability_scrim=_decimal(data.get("readability_scrim", current.readability_scrim), 0.0, 1.0, "readability_scrim"),
     )
 
 

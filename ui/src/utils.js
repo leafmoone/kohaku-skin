@@ -7,6 +7,21 @@ const SKIPPED_URL_PATTERN = /^(?:data:|https?:|blob:|\/\/|\/|#|var\()/i
 const ALLOWED_CUSTOM_URL_PATTERN = /^https?:\/\//i
 const CSS_URL_PATTERN = /url\(\s*(?:"([^"]*)"|'([^']*)'|([^)'"\s]+))\s*\)/gi
 
+export const BACKGROUND_PRESETS = Object.freeze({
+  clearReading: Object.freeze({
+    surface_alpha: 0.82,
+    readability_scrim: 0.72,
+    blur: 16,
+    dim: 0.28,
+  }),
+  vividArtwork: Object.freeze({
+    surface_alpha: 0.56,
+    readability_scrim: 0.42,
+    blur: 8,
+    dim: 0.14,
+  }),
+})
+
 /**
  * Clamp a numeric value within [min, max], returning fallback for invalid input.
  */

@@ -17,6 +17,7 @@ import {
 import { bindOwnerToEngine } from "./engine.js"
 import { resolveSkinName, syncSettingsHostLabels, translateSkinText } from "./i18n.js"
 import {
+  BACKGROUND_PRESETS,
   clampNumber,
   detectSkinImportFormat,
   extractErrorMessage,
@@ -28,10 +29,11 @@ const OWNS_ESC_SELECTOR =
   "input, textarea, select, [contenteditable='true'], [role='dialog'], .el-overlay, .el-popper"
 
 /**
- * Create a reactive panel control shared between the stage component, command handler, and dispose hook.
+ * Create a reactive panel control shared between the stage component, status item, command handler, and dispose hook.
  */
 export function createDockPanelControl() {
   const open = ref(false)
+  const active = ref(false)
   const cleanups = new Set()
   let onToggleHook = null
 
@@ -39,12 +41,16 @@ export function createDockPanelControl() {
     onToggleHook = fn
   }
 
-  function toggle() {
+  function toggleFromAnchor(anchorEl) {
     if (typeof onToggleHook === "function") {
-      onToggleHook()
+      onToggleHook(anchorEl)
       return
     }
     open.value = !open.value
+  }
+
+  function toggle() {
+    toggleFromAnchor(null)
   }
 
   function close() {
@@ -60,6 +66,7 @@ export function createDockPanelControl() {
 
   function dispose() {
     open.value = false
+    active.value = false
     onToggleHook = null
     for (const fn of cleanups) {
       fn()
@@ -69,8 +76,10 @@ export function createDockPanelControl() {
 
   return {
     open,
+    active,
     setToggleHook,
     toggle,
+    toggleFromAnchor,
     close,
     registerCleanup,
     dispose,
@@ -137,11 +146,19 @@ function findDockPillBar(dockEl) {
  * Check whether an element has a non-empty layout presence.
  */
 function isElementVisible(el) {
-  if (!el) return false
+  if (!el || el.isConnected === false) return false
+  if (el.style && el.style.display === "none") return false
   if (el.offsetParent !== undefined && el.offsetParent !== null) return true
   if (typeof el.getClientRects === "function") {
-    return el.getClientRects().length > 0
+    const rects = el.getClientRects()
+    if (!rects || rects.length === 0) return false
+    if (typeof el.getBoundingClientRect === "function") {
+      const box = el.getBoundingClientRect()
+      if (box && box.width === 0 && box.height === 0) return false
+    }
+    return true
   }
+  if (el.offsetParent === null) return false
   return true
 }
 
@@ -162,9 +179,55 @@ export function findVisibleDock(doc, preferredDock) {
 }
 
 /**
- * Compute fixed viewport coordinates anchoring the popover directly above the visible v2-dock.
+ * Determine whether the adaptive fallback floating button should be rendered.
+ * Hidden whenever a visible v2-dock, a visible SDK status-item button, or the Settings view is present.
  */
-export function computePopoverStyle(doc, win, preferredDock) {
+export function shouldShowFallbackFab(doc) {
+  if (!doc || typeof doc.querySelectorAll !== "function") return false
+  const docks = doc.querySelectorAll('[data-test="v2-dock"]')
+  for (const dock of docks) {
+    if (isElementVisible(dock)) return false
+  }
+  const statusButtons = doc.querySelectorAll('[data-test="ks-status-btn"]')
+  for (const btn of statusButtons) {
+    if (isElementVisible(btn)) return false
+  }
+  const settingsViews = doc.querySelectorAll(".ks-settings")
+  for (const view of settingsViews) {
+    if (isElementVisible(view)) return false
+  }
+  return true
+}
+
+/**
+ * Resolve the best visible anchor element and bounding rect for positioning the popover.
+ */
+function resolvePopoverAnchor(doc, anchorEl) {
+  if (
+    anchorEl &&
+    anchorEl.isConnected !== false &&
+    isElementVisible(anchorEl) &&
+    typeof anchorEl.getBoundingClientRect === "function"
+  ) {
+    const rect = anchorEl.getBoundingClientRect()
+    if (rect && (rect.width > 0 || rect.height > 0)) {
+      return { el: anchorEl, rect }
+    }
+  }
+  const dockEl = findVisibleDock(doc, null)
+  if (dockEl && typeof dockEl.getBoundingClientRect === "function") {
+    const rect = dockEl.getBoundingClientRect()
+    if (rect && (rect.width > 0 || rect.height > 0)) {
+      return { el: dockEl, rect }
+    }
+  }
+  return null
+}
+
+/**
+ * Compute viewport-safe fixed coordinates anchoring the popover above the clicked anchor or visible dock.
+ */
+export function computePopoverStyle(doc, win, anchorEl) {
   const fallback = {
     position: "fixed",
     zIndex: "2450",
@@ -172,13 +235,16 @@ export function computePopoverStyle(doc, win, preferredDock) {
     bottom: "96px",
   }
   if (!doc || !win) return fallback
-  const dockEl = findVisibleDock(doc, preferredDock)
-  if (!dockEl || typeof dockEl.getBoundingClientRect !== "function") return fallback
-  const rect = dockEl.getBoundingClientRect()
-  if (!rect || (rect.width === 0 && rect.height === 0)) return fallback
-
-  const rightPx = Math.max(12, Math.round(win.innerWidth - rect.right))
-  const bottomPx = Math.max(16, Math.round(win.innerHeight - rect.top + 8))
+  const resolved = resolvePopoverAnchor(doc, anchorEl)
+  if (!resolved) return fallback
+  const rect = resolved.rect
+  const vw = Number(win.innerWidth) || 1280
+  const vh = Number(win.innerHeight) || 800
+  const popoverWidth = Math.min(352, Math.max(240, vw - 24))
+  const maxRight = Math.max(12, vw - popoverWidth - 12)
+  const rightPx = Math.max(12, Math.min(maxRight, Math.round(vw - rect.right)))
+  const maxBottom = Math.max(16, vh - 120)
+  const bottomPx = Math.max(16, Math.min(maxBottom, Math.round(vh - rect.top + 8)))
   return {
     position: "fixed",
     zIndex: "2450",
@@ -270,6 +336,68 @@ export function removeInjectedDockButtons(doc) {
 }
 
 /**
+ * Create the official SDK status-item component rendering a compact prism trigger button.
+ */
+export function createStatusSkinItem(panelControl) {
+  return {
+    name: "KohakuSkinStatusItem",
+    setup() {
+      let locale = ref("en")
+      try {
+        locale = useLocale()
+      } catch (_outsideExt) {
+        locale = ref("en")
+      }
+      const btnEl = ref(null)
+      const open = panelControl.open
+      const active = panelControl.active
+      const label = computed(() => translateSkinText(locale.value, "skin.floatTitle", {}))
+
+      function onToggle() {
+        panelControl.toggleFromAnchor(btnEl.value)
+      }
+
+      return {
+        btnEl,
+        open,
+        active,
+        label,
+        onToggle,
+      }
+    },
+    template: `
+      <button
+        ref="btnEl"
+        type="button"
+        class="ks-status-icon-btn"
+        :class="{ 'ks-status-icon-btn--active': open || active }"
+        :title="label"
+        :aria-label="label"
+        :aria-expanded="open ? 'true' : 'false'"
+        data-test="ks-status-btn"
+        @click.stop="onToggle"
+      >
+        <svg
+          viewBox="0 0 24 24"
+          width="13"
+          height="13"
+          fill="none"
+          stroke="currentColor"
+          stroke-width="1.8"
+          stroke-linecap="round"
+          stroke-linejoin="round"
+          aria-hidden="true"
+        >
+          <path d="M12 2.5L20.5 9.5L12 21.5L3.5 9.5L12 2.5Z" />
+          <path d="M3.5 9.5H20.5" />
+          <path d="M12 2.5L8.5 9.5L12 21.5L15.5 9.5L12 2.5Z" />
+        </svg>
+      </button>
+    `,
+  }
+}
+
+/**
  * Create the stage & dock skin popover component bound to the skin engine and panel control.
  */
 export function createDockSkinPanel(engine, panelControl) {
@@ -294,11 +422,14 @@ export function createDockSkinPanel(engine, panelControl) {
       const skinFileInput = ref(null)
       const bgFileInput = ref(null)
       const popoverEl = ref(null)
+      const fallbackFabEl = ref(null)
+      const showFallbackFab = ref(false)
       const alphaDraft = ref(0.76)
+      const readabilityDraft = ref(0.55)
       const blurDraft = ref(14)
       const popoverStyle = ref(computePopoverStyle(docRef, winRef, null))
 
-      let activeDockEl = null
+      let activeAnchorEl = null
       let sliderCommitTimer = null
       let mutationObserver = null
       let pendingRafId = null
@@ -326,12 +457,12 @@ export function createDockSkinPanel(engine, panelControl) {
       )
 
       function refreshPopoverPosition() {
-        popoverStyle.value = computePopoverStyle(docRef, winRef, activeDockEl)
+        popoverStyle.value = computePopoverStyle(docRef, winRef, activeAnchorEl)
       }
 
-      function toggleFromDock(dockEl) {
-        if (dockEl) {
-          activeDockEl = dockEl
+      function toggleFromAnchor(anchorEl) {
+        if (anchorEl) {
+          activeAnchorEl = anchorEl
         }
         if (!open.value) {
           refreshPopoverPosition()
@@ -341,8 +472,12 @@ export function createDockSkinPanel(engine, panelControl) {
         }
       }
 
-      panelControl.setToggleHook(() => {
-        toggleFromDock(activeDockEl)
+      function toggleFromFallback() {
+        toggleFromAnchor(fallbackFabEl.value)
+      }
+
+      panelControl.setToggleHook((anchorEl) => {
+        toggleFromAnchor(anchorEl || activeAnchorEl)
       })
 
       function syncAllDocks() {
@@ -351,9 +486,10 @@ export function createDockSkinPanel(engine, panelControl) {
           active: Boolean(open.value || skinEnabled.value),
           open: Boolean(open.value),
           title: tr("skin.floatTitle", {}),
-          onToggle: toggleFromDock,
+          onToggle: toggleFromAnchor,
         })
         syncSettingsHostLabels(docRef, tr("skin.title", {}))
+        showFallbackFab.value = shouldShowFallbackFab(docRef)
       }
 
       function scheduleDockSync() {
@@ -385,7 +521,12 @@ export function createDockSkinPanel(engine, panelControl) {
         if (popoverEl.value && typeof popoverEl.value.contains === "function" && popoverEl.value.contains(target)) {
           return
         }
-        if (typeof target.closest === "function" && target.closest('[data-test="ks-dock-slot"]')) {
+        if (
+          typeof target.closest === "function" &&
+          (target.closest('[data-test="ks-dock-slot"]') ||
+            target.closest('[data-test="ks-status-btn"]') ||
+            target.closest('[data-test="ks-fallback-fab"]'))
+        ) {
           return
         }
         if (target === skinFileInput.value || target === bgFileInput.value) {
@@ -395,6 +536,9 @@ export function createDockSkinPanel(engine, panelControl) {
       }
 
       function onWindowResize() {
+        if (docRef) {
+          showFallbackFab.value = shouldShowFallbackFab(docRef)
+        }
         if (open.value) {
           refreshPopoverPosition()
         }
@@ -454,6 +598,14 @@ export function createDockSkinPanel(engine, panelControl) {
       })
 
       watch(
+        skinEnabled,
+        (enabled) => {
+          panelControl.active.value = Boolean(enabled)
+        },
+        { immediate: true },
+      )
+
+      watch(
         [open, skinEnabled, locale],
         () => {
           syncAllDocks()
@@ -469,6 +621,7 @@ export function createDockSkinPanel(engine, panelControl) {
         (nextBg) => {
           if (!nextBg) return
           alphaDraft.value = clampNumber(nextBg.surface_alpha, 0.2, 1.0, 0.76)
+          readabilityDraft.value = clampNumber(nextBg.readability_scrim, 0, 1, 0.55)
           blurDraft.value = Math.round(clampNumber(nextBg.blur, 0, 32, 14))
         },
         { immediate: true },
@@ -628,10 +781,36 @@ export function createDockSkinPanel(engine, panelControl) {
         scheduleSliderCommit({ surface_alpha: val })
       }
 
+      function onReadabilityInput(ev) {
+        const val = clampNumber(ev.target.value, 0, 1, 0.55)
+        readabilityDraft.value = val
+        scheduleSliderCommit({ readability_scrim: val })
+      }
+
       function onBlurInput(ev) {
         const val = Math.round(clampNumber(ev.target.value, 0, 32, 14))
         blurDraft.value = val
         scheduleSliderCommit({ blur: val })
+      }
+
+      async function applyPreset(presetKey) {
+        const preset = BACKGROUND_PRESETS[presetKey]
+        if (!preset) return
+        if (sliderCommitTimer !== null) {
+          clearTimeout(sliderCommitTimer)
+          sliderCommitTimer = null
+        }
+        alphaDraft.value = preset.surface_alpha
+        readabilityDraft.value = preset.readability_scrim
+        blurDraft.value = preset.blur
+        if (docRef) {
+          engine.previewBackgroundVars(preset, docRef)
+        }
+        try {
+          await runAction("set_background", { ...preset })
+        } catch (_handled) {
+          // Error already surfaced via notify in runAction.
+        }
       }
 
       return {
@@ -640,7 +819,10 @@ export function createDockSkinPanel(engine, panelControl) {
         skinFileInput,
         bgFileInput,
         popoverEl,
+        fallbackFabEl,
+        showFallbackFab,
         alphaDraft,
+        readabilityDraft,
         blurDraft,
         popoverStyle,
         skins,
@@ -652,6 +834,7 @@ export function createDockSkinPanel(engine, panelControl) {
         skinLabel,
         startDomIntegration,
         teardownDomIntegration,
+        toggleFromFallback,
         closePanel,
         openFullSettings,
         selectDefault,
@@ -663,7 +846,9 @@ export function createDockSkinPanel(engine, panelControl) {
         onBgFileChange,
         clearWallpaper,
         onAlphaInput,
+        onReadabilityInput,
         onBlurInput,
+        applyPreset,
       }
     },
     template: `
@@ -685,6 +870,35 @@ export function createDockSkinPanel(engine, panelControl) {
             data-test="ks-dock-bg-input"
             @change="onBgFileChange"
           />
+
+          <button
+            v-if="showFallbackFab"
+            ref="fallbackFabEl"
+            type="button"
+            class="ks-fallback-fab kt-v2-float kt-v2-edge"
+            :class="{ 'ks-fallback-fab--active': open || skinEnabled }"
+            :title="tr('skin.floatTitle', {})"
+            :aria-label="tr('skin.floatTitle', {})"
+            :aria-expanded="open ? 'true' : 'false'"
+            data-test="ks-fallback-fab"
+            @click.stop="toggleFromFallback"
+          >
+            <svg
+              viewBox="0 0 24 24"
+              width="15"
+              height="15"
+              fill="none"
+              stroke="currentColor"
+              stroke-width="1.7"
+              stroke-linecap="round"
+              stroke-linejoin="round"
+              aria-hidden="true"
+            >
+              <path d="M12 2.5L20.5 9.5L12 21.5L3.5 9.5L12 2.5Z" />
+              <path d="M3.5 9.5H20.5" />
+              <path d="M12 2.5L8.5 9.5L12 21.5L15.5 9.5L12 2.5Z" />
+            </svg>
+          </button>
 
           <section
             v-if="open"
@@ -813,6 +1027,42 @@ export function createDockSkinPanel(engine, panelControl) {
                   >
                     {{ tr("skin.btnClearBg", {}) }}
                   </button>
+                </div>
+
+                <div class="ks-dock-btn-row">
+                  <button
+                    type="button"
+                    class="ks-dock-btn"
+                    :disabled="busy"
+                    data-test="ks-dock-preset-clear-reading"
+                    @click="applyPreset('clearReading')"
+                  >
+                    {{ tr("skin.presetClearReading", {}) }}
+                  </button>
+                  <button
+                    type="button"
+                    class="ks-dock-btn"
+                    :disabled="busy"
+                    data-test="ks-dock-preset-vivid-artwork"
+                    @click="applyPreset('vividArtwork')"
+                  >
+                    {{ tr("skin.presetVividArtwork", {}) }}
+                  </button>
+                </div>
+
+                <div class="ks-dock-slider-row">
+                  <span class="ks-dock-slider-label">{{ tr("skin.floatReadabilityLabel", {}) }}</span>
+                  <input
+                    class="ks-dock-slider-input"
+                    type="range"
+                    min="0.00"
+                    max="1.00"
+                    step="0.02"
+                    :value="readabilityDraft"
+                    data-test="ks-dock-slider-readability"
+                    @input="onReadabilityInput"
+                  />
+                  <span class="ks-dock-slider-num">{{ Math.round(readabilityDraft * 100) }}%</span>
                 </div>
 
                 <div class="ks-dock-slider-row">

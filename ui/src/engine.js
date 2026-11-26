@@ -112,6 +112,7 @@ export function createSkinEngine(pkgName) {
     rootEl.removeAttribute("data-ks-active")
     rootEl.removeAttribute("data-ks-skin")
     rootEl.removeAttribute("data-ks-bg-active")
+    rootEl.removeAttribute("data-ks-plate")
     clearInlineTokens(rootEl)
     removeActiveStyle(doc)
     removeBgRoot(doc)
@@ -183,6 +184,7 @@ export function createSkinEngine(pkgName) {
       const dim = clampNumber(bg.dim, 0, 0.85, 0.24)
       const blur = Math.round(clampNumber(bg.blur, 0, 32, 14))
       const surfaceAlpha = clampNumber(bg.surface_alpha, 0.2, 1.0, 0.76)
+      const readability = clampNumber(bg.readability_scrim, 0, 1, 0.55)
 
       rootEl.setAttribute("data-ks-bg-active", "true")
       setTrackedProperty(rootEl, "--ks-bg-image", `url("${escapeCssUrl(bgUrl)}")`)
@@ -190,9 +192,16 @@ export function createSkinEngine(pkgName) {
       setTrackedProperty(rootEl, "--ks-bg-dim", String(dim))
       setTrackedProperty(rootEl, "--ks-backdrop-blur", `${blur}px`)
       setTrackedProperty(rootEl, "--ks-surface-alpha", String(surfaceAlpha))
+      setTrackedProperty(rootEl, "--ks-readability", String(readability))
+      if (readability > 0.02) {
+        rootEl.setAttribute("data-ks-plate", "true")
+      } else {
+        rootEl.removeAttribute("data-ks-plate")
+      }
       ensureBgRoot(doc)
     } else {
       rootEl.removeAttribute("data-ks-bg-active")
+      rootEl.removeAttribute("data-ks-plate")
       removeBgRoot(doc)
     }
   }
@@ -221,6 +230,15 @@ export function createSkinEngine(pkgName) {
         "--ks-surface-alpha",
         String(clampNumber(partial.surface_alpha, 0.2, 1.0, 0.76)),
       )
+    }
+    if (partial.readability_scrim !== undefined) {
+      const readability = clampNumber(partial.readability_scrim, 0, 1, 0.55)
+      setTrackedProperty(rootEl, "--ks-readability", String(readability))
+      if (readability > 0.02) {
+        rootEl.setAttribute("data-ks-plate", "true")
+      } else {
+        rootEl.removeAttribute("data-ks-plate")
+      }
     }
   }
 

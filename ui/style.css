@@ -31,8 +31,16 @@
 #kohaku-skin-bg-root .ks-bg-dimmer {
   position: absolute;
   inset: 0;
-  background: rgba(8, 10, 14, var(--ks-bg-dim, 0.24));
+  background: rgba(var(--ks-dimmer-rgb, 8, 10, 14), var(--ks-bg-dim, 0.24));
   transition: background-color 0.2s ease;
+}
+
+html:not(.dark) #kohaku-skin-bg-root .ks-bg-dimmer {
+  background: rgba(var(--ks-dimmer-rgb, 248, 245, 240), var(--ks-bg-dim, 0.24));
+}
+
+html.dark #kohaku-skin-bg-root .ks-bg-dimmer {
+  background: rgba(var(--ks-dimmer-rgb, 8, 10, 14), var(--ks-bg-dim, 0.24));
 }
 
 html[data-ks-bg-active="true"] #app {
@@ -198,6 +206,21 @@ html[data-ks-bg-active="true"] {
   --ks-eff-card: var(--ks-card, #ffffff);
   --ks-eff-float: var(--ks-float, #ffffff);
   --ks-eff-user-bubble: var(--ks-user-bubble, #efebe5);
+
+  --ks-session-border: color-mix(
+    in srgb,
+    rgb(28 25 23) calc(14% + var(--ks-readability, 0.55) * 24%),
+    var(--ks-border, #d6cfc5)
+  );
+  --ks-session-border-strong: color-mix(
+    in srgb,
+    rgb(28 25 23) calc(22% + var(--ks-readability, 0.55) * 32%),
+    var(--ks-border-strong, var(--ks-border, #c5bcb0))
+  );
+  --ks-session-inner-highlight: rgba(255, 255, 255, 0.55);
+  --ks-session-shadow: 0 2px 10px rgba(24, 20, 16, 0.08);
+  --ks-text-halo: 0 1px 2px rgba(255, 255, 255, 0.72), 0 0 1px rgba(255, 255, 255, 0.45);
+  --ks-plate-blur: calc(var(--ks-backdrop-blur, 14px) * 0.75);
 }
 
 html.dark[data-ks-bg-active="true"] {
@@ -210,6 +233,20 @@ html.dark[data-ks-bg-active="true"] {
   --ks-eff-card: var(--ks-card, #2a2724);
   --ks-eff-float: var(--ks-float, #2e2b28);
   --ks-eff-user-bubble: var(--ks-user-bubble, #3a3632);
+
+  --ks-session-border: color-mix(
+    in srgb,
+    rgb(255 255 255) calc(14% + var(--ks-readability, 0.55) * 22%),
+    var(--ks-border, #3d3835)
+  );
+  --ks-session-border-strong: color-mix(
+    in srgb,
+    rgb(255 255 255) calc(22% + var(--ks-readability, 0.55) * 30%),
+    var(--ks-border-strong, var(--ks-border, #4a4540))
+  );
+  --ks-session-inner-highlight: rgba(255, 255, 255, 0.08);
+  --ks-session-shadow: 0 4px 16px rgba(0, 0, 0, 0.34);
+  --ks-text-halo: 0 1px 2px rgba(6, 8, 12, 0.78), 0 0 1px rgba(6, 8, 12, 0.52);
 }
 
 html[data-ks-bg-active="true"],
@@ -240,6 +277,7 @@ html[data-ks-bg-active="true"] .kt-rail-pane {
     var(--ks-eff-rail) calc(var(--ks-surface-alpha, 0.78) * 100%),
     transparent
   ) !important;
+  border-color: var(--ks-session-border) !important;
   backdrop-filter: blur(var(--ks-backdrop-blur, 14px)) saturate(135%);
   -webkit-backdrop-filter: blur(var(--ks-backdrop-blur, 14px)) saturate(135%);
 }
@@ -251,6 +289,7 @@ html[data-ks-bg-active="true"] .kt-macro-shell [class*="bg-[var(--kt-shell-strip
     var(--ks-eff-chrome) calc(var(--ks-surface-alpha, 0.78) * 100%),
     transparent
   ) !important;
+  border-color: var(--ks-session-border) !important;
   backdrop-filter: blur(var(--ks-backdrop-blur, 14px)) saturate(135%);
   -webkit-backdrop-filter: blur(var(--ks-backdrop-blur, 14px)) saturate(135%);
 }
@@ -281,6 +320,8 @@ html[data-ks-bg-active="true"] .kt-v2 {
     var(--ks-eff-float) calc(var(--ks-surface-alpha, 0.78) * 100%),
     transparent
   );
+  --v2-line: var(--ks-session-border);
+  --v2-line-strong: var(--ks-session-border-strong);
 }
 
 html[data-ks-bg-active="true"] .kt-v2.kt-v2-canvas,
@@ -293,25 +334,184 @@ html[data-ks-bg-active="true"] .kt-v2-float {
   -webkit-backdrop-filter: blur(var(--ks-backdrop-blur, 14px)) saturate(135%);
 }
 
+html[data-ks-bg-active="true"] .kt-v2-card,
+html[data-ks-bg-active="true"] .kt-v2-float {
+  box-shadow: inset 0 1px 0 var(--ks-session-inner-highlight), var(--ks-session-shadow);
+}
+
 html[data-ks-bg-active="true"] .card {
   background: color-mix(
     in srgb,
     var(--ks-eff-card) calc(var(--ks-surface-alpha, 0.78) * 100%),
     transparent
   ) !important;
+  border-color: var(--ks-session-border) !important;
   backdrop-filter: blur(var(--ks-backdrop-blur, 14px)) saturate(135%);
   -webkit-backdrop-filter: blur(var(--ks-backdrop-blur, 14px)) saturate(135%);
+}
+
+html[data-ks-bg-active="true"] .kt-conversation-host {
+  --kt-conversation-border: var(--ks-session-border);
 }
 
 html[data-ks-bg-active="true"] .user-message,
 html[data-ks-bg-active="true"] .kt-conversation-user-bubble {
   background: color-mix(
     in srgb,
-    var(--ks-eff-user-bubble) calc(var(--ks-surface-alpha, 0.78) * 100%),
+    var(--ks-eff-user-bubble)
+      max(calc(var(--ks-surface-alpha, 0.76) * 100%), calc(var(--ks-readability, 0.55) * 88%)),
     transparent
   ) !important;
+  border: 1px solid var(--ks-session-border-strong) !important;
+  box-shadow: inset 0 1px 0 var(--ks-session-inner-highlight), var(--ks-session-shadow);
   backdrop-filter: blur(var(--ks-backdrop-blur, 14px)) saturate(135%);
   -webkit-backdrop-filter: blur(var(--ks-backdrop-blur, 14px)) saturate(135%);
+}
+
+/* Internal dividers and tinted hairlines inside conversation blocks (border contrast only) */
+html[data-ks-bg-active="true"] .kt-conversation-host [class*="border-sapphire"],
+html[data-ks-bg-active="true"] .kt-conversation-host [class*="border-taaffeite"],
+html[data-ks-bg-active="true"] .kt-conversation-host [class*="border-amber"],
+html[data-ks-bg-active="true"] .kt-conversation-host [class*="border-iolite"],
+html[data-ks-bg-active="true"] .kt-conversation-host [class*="border-aquamarine"] {
+  border-color: var(--ks-session-border) !important;
+}
+
+/* Outer standalone card containers (tool calls, subagents, triggers, wires, reasoning, events, banners) */
+html[data-ks-bg-active="true"] .kt-conversation-host .kt-conversation-part > .rounded-lg,
+html[data-ks-bg-active="true"] .kt-conversation-host > .rounded-lg,
+html[data-ks-bg-active="true"] .kt-conversation-host .kt-conversation-list > .rounded-lg,
+html[data-ks-bg-active="true"] .kt-conversation-host .kt-conversation-reasoning,
+html[data-ks-bg-active="true"] .kt-conversation-host .kt-conversation-event,
+html[data-ks-bg-active="true"] .kt-conversation-host .kt-conversation-banner {
+  background-color: color-mix(
+    in srgb,
+    var(--ks-eff-card)
+      max(calc(var(--ks-surface-alpha, 0.76) * 100%), calc(var(--ks-readability, 0.55) * 88%)),
+    transparent
+  ) !important;
+  border-color: var(--ks-session-border-strong) !important;
+  box-shadow: inset 0 1px 0 var(--ks-session-inner-highlight), var(--ks-session-shadow);
+  backdrop-filter: blur(var(--ks-plate-blur, 10px)) saturate(130%);
+  -webkit-backdrop-filter: blur(var(--ks-plate-blur, 10px)) saturate(130%);
+}
+
+html[data-ks-bg-active="true"] .kt-conversation-host .kt-conversation-part [class*="text-warm-"],
+html[data-ks-bg-active="true"] .kt-conversation-host .kt-conversation-reasoning,
+html[data-ks-bg-active="true"] .kt-conversation-host .kt-conversation-event {
+  color: color-mix(
+    in srgb,
+    var(--ks-text, var(--color-text)) 82%,
+    var(--ks-text-muted, var(--color-text-muted))
+  );
+}
+
+/* Markdown content frames (code blocks, inline code, blockquotes, tables, rules) */
+html[data-ks-bg-active="true"] .kt-conversation-host .md-content .code-block {
+  background-color: color-mix(
+    in srgb,
+    var(--ks-eff-surface) max(86%, calc(var(--ks-surface-alpha, 0.76) * 100%)),
+    transparent
+  ) !important;
+  border: 1px solid var(--ks-session-border-strong) !important;
+  box-shadow: var(--ks-session-shadow);
+}
+
+html[data-ks-bg-active="true"] .kt-conversation-host .md-content .code-block .code-header {
+  border-bottom: 1px solid var(--ks-session-border) !important;
+}
+
+html[data-ks-bg-active="true"] .kt-conversation-host .md-content :not(pre) > code {
+  border: 1px solid var(--ks-session-border);
+  background-color: color-mix(
+    in srgb,
+    var(--ks-eff-surface-alt) 85%,
+    transparent
+  );
+}
+
+html[data-ks-bg-active="true"] .kt-conversation-host .md-content blockquote {
+  border-left: 3px solid var(--ks-session-border-strong) !important;
+  background-color: color-mix(
+    in srgb,
+    var(--ks-eff-surface-alt) max(50%, calc(var(--ks-readability, 0.55) * 75%)),
+    transparent
+  );
+}
+
+html[data-ks-bg-active="true"] .kt-conversation-host .md-content table {
+  border: 1px solid var(--ks-session-border-strong) !important;
+}
+
+html[data-ks-bg-active="true"] .kt-conversation-host .md-content th,
+html[data-ks-bg-active="true"] .kt-conversation-host .md-content td {
+  border-color: var(--ks-session-border) !important;
+}
+
+html[data-ks-bg-active="true"] .kt-conversation-host .md-content hr {
+  border-color: var(--ks-session-border-strong) !important;
+}
+
+/* Chat composer shell clarity and focus contrast */
+html[data-ks-bg-active="true"] .kt-chat-composer__shell {
+  background: color-mix(
+    in srgb,
+    var(--ks-eff-float)
+      max(calc(var(--ks-surface-alpha, 0.76) * 100%), calc(var(--ks-readability, 0.55) * 90%)),
+    transparent
+  ) !important;
+  border: 1px solid var(--ks-session-border-strong) !important;
+  box-shadow: inset 0 1px 0 var(--ks-session-inner-highlight), var(--ks-session-shadow);
+  backdrop-filter: blur(var(--ks-backdrop-blur, 14px)) saturate(135%);
+  -webkit-backdrop-filter: blur(var(--ks-backdrop-blur, 14px)) saturate(135%);
+}
+
+html[data-ks-bg-active="true"] .kt-chat-composer__shell:focus-within {
+  border-color: var(--kc-focus, var(--kt-color-iolite, #5a4fcf)) !important;
+  box-shadow:
+    0 0 0 2px color-mix(in srgb, var(--kc-focus, var(--kt-color-iolite, #5a4fcf)) 38%, transparent),
+    var(--ks-session-shadow);
+}
+
+/* Frosted reading plates for unbubbled assistant and channel messages */
+html[data-ks-bg-active="true"][data-ks-plate="true"]
+  .kt-conversation-host
+  .group
+  > .chat-cv:not(.kt-conversation-user-bubble):not(.kt-conversation-banner),
+html[data-ks-bg-active="true"][data-ks-plate="true"]
+  .kt-conversation-host
+  > .kt-conversation-message--assistant,
+html[data-ks-bg-active="true"][data-ks-plate="true"]
+  .kt-conversation-host
+  .chat-cv
+  > .pl-7.text-body {
+  background: color-mix(
+    in srgb,
+    var(--ks-eff-card) calc(var(--ks-readability, 0.55) * 86%),
+    transparent
+  );
+  border: 1px solid var(--ks-session-border);
+  border-radius: var(--ks-radius, 0.75rem);
+  padding: 0.65rem 0.9rem;
+  box-shadow: inset 0 1px 0 var(--ks-session-inner-highlight), var(--ks-session-shadow);
+  backdrop-filter: blur(var(--ks-plate-blur, 10px)) saturate(130%);
+  -webkit-backdrop-filter: blur(var(--ks-plate-blur, 10px)) saturate(130%);
+}
+
+/* Restrained micro text halo for crisp legibility over detailed wallpaper areas */
+html[data-ks-bg-active="true"] .kt-conversation-host,
+html[data-ks-bg-active="true"] .kt-conversation-host .md-content,
+html[data-ks-bg-active="true"] .kt-v2-chrome,
+html[data-ks-bg-active="true"] .kt-rail-pane,
+html[data-ks-bg-active="true"] .kt-tab-strip {
+  text-shadow: var(--ks-text-halo);
+}
+
+html[data-ks-bg-active="true"] .kt-conversation-host pre,
+html[data-ks-bg-active="true"] .kt-conversation-host code,
+html[data-ks-bg-active="true"] .kt-conversation-host input,
+html[data-ks-bg-active="true"] .kt-conversation-host textarea {
+  text-shadow: none;
 }
 
 /* ============================================================================
@@ -780,4 +980,65 @@ html[data-ks-bg-active="true"] .ks-dock-popover {
   font-family: var(--font-mono, monospace);
   color: var(--color-text-muted, #6c655d);
   flex-shrink: 0;
+}
+
+/* ============================================================================
+ * 6. Official SDK Status Bar Item & Adaptive Fallback FAB
+ * ========================================================================== */
+
+.ks-status-icon-btn {
+  height: 1.25rem;
+  width: 1.5rem;
+  border-radius: 0.3rem;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--color-text-muted, #6c655d);
+  background: transparent;
+  cursor: pointer;
+  transition: background-color 0.15s ease, color 0.15s ease;
+}
+
+.ks-status-icon-btn:hover {
+  background: color-mix(in srgb, var(--color-text, #2e2a26) 9%, transparent);
+  color: var(--color-text, #2e2a26);
+}
+
+.ks-status-icon-btn--active {
+  color: var(--kt-color-iolite, #5a4fcf);
+  background: color-mix(in srgb, var(--kt-color-iolite, #5a4fcf) 14%, transparent);
+}
+
+.ks-status-icon-btn--active:hover {
+  color: var(--kt-color-iolite, #5a4fcf);
+  background: color-mix(in srgb, var(--kt-color-iolite, #5a4fcf) 20%, transparent);
+}
+
+.ks-fallback-fab {
+  position: fixed;
+  right: 1rem;
+  bottom: 1rem;
+  z-index: 2440;
+  height: 2.1rem;
+  width: 2.1rem;
+  border-radius: 9999px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border: 1px solid var(--v2-line-strong, var(--color-border, #cdc5ba));
+  background: var(--v2-float, var(--color-surface, #ffffff));
+  color: var(--color-text-muted, #6c655d);
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.18);
+  cursor: pointer;
+  transition: background-color 0.15s ease, color 0.15s ease, border-color 0.15s ease;
+}
+
+.ks-fallback-fab:hover {
+  border-color: var(--kt-color-iolite, #5a4fcf);
+  color: var(--color-text, #2e2a26);
+}
+
+.ks-fallback-fab--active {
+  border-color: var(--kt-color-iolite, #5a4fcf);
+  color: var(--kt-color-iolite, #5a4fcf);
 }

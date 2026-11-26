@@ -28,3 +28,9 @@ ui:
       id: toggle-switcher
       label: Toggle Skin Panel
       shortcut: Ctrl+Alt+S
+    - kind: status-item
+      id: quick-toggle
+      label: Skin & Appearance
+      owner: package
+      side: right
+      maxWidth: 32

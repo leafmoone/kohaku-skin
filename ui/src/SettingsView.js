@@ -24,6 +24,7 @@ import {
   translateSkinText,
 } from "./i18n.js"
 import {
+  BACKGROUND_PRESETS,
   buildApiBase,
   buildTemplateZipUrl,
   clampNumber,
@@ -67,6 +68,7 @@ export function createSettingsView(engine) {
       const alphaDraft = ref(0.76)
       const blurDraft = ref(14)
       const dimDraft = ref(0.24)
+      const readabilityDraft = ref(0.55)
       let sliderCommitTimer = null
 
       function tr(key, params) {
@@ -128,6 +130,7 @@ export function createSettingsView(engine) {
           alphaDraft.value = clampNumber(nextBg.surface_alpha, 0.2, 1.0, 0.76)
           blurDraft.value = Math.round(clampNumber(nextBg.blur, 0, 32, 14))
           dimDraft.value = clampNumber(nextBg.dim, 0, 0.85, 0.24)
+          readabilityDraft.value = clampNumber(nextBg.readability_scrim, 0, 1, 0.55)
         },
         { immediate: true },
       )
@@ -359,6 +362,33 @@ export function createSettingsView(engine) {
         scheduleSliderCommit({ dim: val })
       }
 
+      function onReadabilityInput(ev) {
+        const val = clampNumber(ev.target.value, 0, 1, 0.55)
+        readabilityDraft.value = val
+        scheduleSliderCommit({ readability_scrim: val })
+      }
+
+      async function applyPreset(presetKey) {
+        const preset = BACKGROUND_PRESETS[presetKey]
+        if (!preset) return
+        if (sliderCommitTimer !== null) {
+          clearTimeout(sliderCommitTimer)
+          sliderCommitTimer = null
+        }
+        alphaDraft.value = preset.surface_alpha
+        readabilityDraft.value = preset.readability_scrim
+        blurDraft.value = preset.blur
+        dimDraft.value = preset.dim
+        if (typeof document !== "undefined") {
+          engine.previewBackgroundVars(preset, document)
+        }
+        try {
+          await runAction("set_background", { ...preset })
+        } catch (_handled) {
+          // Error already surfaced via notify in runAction.
+        }
+      }
+
       return {
         owner,
         busy,
@@ -368,6 +398,7 @@ export function createSettingsView(engine) {
         alphaDraft,
         blurDraft,
         dimDraft,
+        readabilityDraft,
         ownerState,
         skins,
         skinEnabled,
@@ -396,6 +427,8 @@ export function createSettingsView(engine) {
         onAlphaInput,
         onBlurInput,
         onDimInput,
+        onReadabilityInput,
+        applyPreset,
       }
     },
     template: `
@@ -670,6 +703,51 @@ export function createSettingsView(engine) {
                 >
                   {{ tr("skin.fitContain", {}) }}
                 </button>
+              </div>
+            </SettingsRow>
+
+            <SettingsRow
+              :title="tr('skin.rowPresetsTitle', {})"
+              :hint="tr('skin.rowPresetsHint', {})"
+            >
+              <div class="ks-settings-toolbar">
+                <ActionButton
+                  variant="secondary"
+                  size="sm"
+                  :disabled="busy"
+                  data-test="ks-preset-clear-reading"
+                  @click="applyPreset('clearReading')"
+                >
+                  {{ tr("skin.presetClearReading", {}) }}
+                </ActionButton>
+                <ActionButton
+                  variant="secondary"
+                  size="sm"
+                  :disabled="busy"
+                  data-test="ks-preset-vivid-artwork"
+                  @click="applyPreset('vividArtwork')"
+                >
+                  {{ tr("skin.presetVividArtwork", {}) }}
+                </ActionButton>
+              </div>
+            </SettingsRow>
+
+            <SettingsRow
+              :title="tr('skin.rowReadabilityTitle', {})"
+              :hint="tr('skin.rowReadabilityHint', {})"
+            >
+              <div class="ks-settings-slider-wrap">
+                <input
+                  class="ks-settings-slider"
+                  type="range"
+                  min="0.00"
+                  max="1.00"
+                  step="0.02"
+                  :value="readabilityDraft"
+                  data-test="ks-slider-readability"
+                  @input="onReadabilityInput"
+                />
+                <span class="ks-settings-slider-val">{{ Math.round(readabilityDraft * 100) }}%</span>
               </div>
             </SettingsRow>
 
