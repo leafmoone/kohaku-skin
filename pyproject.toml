@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "kohaku-skin"
-version = "0.2.1"
+version = "0.2.2"
 description = "Extensible UI skin, boot intro cinema, live wallpaper, and session readability engine for KohakuTerrarium"
 readme = "README.md"
 license = { text = "MIT" }

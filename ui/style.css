@@ -488,14 +488,38 @@ html[data-ks-bg-active="true"] .kt-chat-composer__shell:focus-within {
     var(--ks-session-shadow);
 }
 
-/* Release fixed-position containing blocks on ancestors whenever an inline Element Plus overlay/drawer is open */
+/* Release fixed-position containing blocks on ancestors whenever an inline overlay/dialog is open */
 html[data-ks-active="true"] #app :has(.el-overlay:not([style*="display: none"])),
-html[data-ks-bg-active="true"] #app :has(.el-overlay:not([style*="display: none"])) {
+html[data-ks-bg-active="true"] #app :has(.el-overlay:not([style*="display: none"])),
+html[data-ks-active="true"] #app :has(.fixed.inset-0:not([style*="display: none"])),
+html[data-ks-bg-active="true"] #app :has(.fixed.inset-0:not([style*="display: none"])) {
   backdrop-filter: none !important;
   -webkit-backdrop-filter: none !important;
   filter: none !important;
   transform: none !important;
   contain: none !important;
+  z-index: auto !important;
+  overflow: visible !important;
+}
+
+/* Ensure native fullscreen modals sit cleanly above sibling glass panels while keeping frosted dialog cards */
+html[data-ks-bg-active="true"] [data-test="new-session"],
+html[data-ks-bg-active="true"] [data-test="add-dialog"] {
+  z-index: 2100 !important;
+}
+
+html[data-ks-bg-active="true"] [data-test="new-session"] > section.kt-v2-float,
+html[data-ks-bg-active="true"] [data-test="add-dialog"] > section.kt-v2-float {
+  background-color: color-mix(in srgb, var(--ks-eff-panel) 94%, transparent) !important;
+  border-color: var(--ks-session-border-strong) !important;
+  backdrop-filter: blur(var(--ks-backdrop-blur, 14px)) saturate(135%) !important;
+  -webkit-backdrop-filter: blur(var(--ks-backdrop-blur, 14px)) saturate(135%) !important;
+}
+
+/* Lift tab-strip stacking context when its inline NewTabMenu dropdown is open */
+html[data-ks-bg-active="true"] .kt-tab-strip:has(> .absolute) {
+  position: relative;
+  z-index: 45;
 }
 
 /* Match model-switcher drawer surface and edge clarity over custom wallpapers */
