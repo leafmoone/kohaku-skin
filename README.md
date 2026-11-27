@@ -25,6 +25,27 @@ kt install . -e
 
 Restart or reload KohakuTerrarium. Open **Settings → Skin & Appearance**, click the skin icon in the Session Floating Dock (`浮动面板`), or press **`Ctrl+Alt+S`** to toggle the quick skin panel.
 
+## Boot Intro & Live Wallpaper Studio
+
+The intro player is off by default and independent of the active skin. **Boot Intro & Live Wallpaper Studio** lets you choose an intro, control startup playback and volume, and keep a separately supplied silent looping video as a wallpaper. The bundled **Kohaku Starlight** director pack contains three original MIT-licensed 16:9 illustrations, two bilingual subtitles, and a browser-synthesized `synth:starlight` cue. The wizard creates a single-image or video package without hand-editing JSON.
+
+Place manual packs in `<config_dir>/kohaku-skin/intros/<id>/`, then rescan. In multi-user mode ordinary users install into `users/<user_id>/intros`; admins can publish shared packs. Lookup prefers built-in packs, then private packs, then shared packs. Preferences are per-user. ZIPs must contain `intro.json` at the root or under one wrapper directory, with all referenced assets. Use stored or DEFLATE compression and a unique pack ID when importing into a library that already contains the original. The compressed upload and unpacked contents are limited to 120 MiB each and the archive may contain at most 64 files. Links, unsafe paths, and active SVG content are rejected. Media export contains the manifest and its referenced assets only. Download `intro-template.zip` for a fully working director example with a reusable custom ID.
+
+### `intro.json` format
+
+| Fields | Meaning |
+|---|---|
+| `id`, `name`, `version`, `author`, `description` | Pack metadata. `id` matches `^[a-z0-9][a-z0-9._-]{0,63}$` and the folder name; `source` is assigned by the host. |
+| `mode` | `single` requires `auto_stages_image`; `video` requires `video`; `director` requires at least one layer. Leave other mode-specific paths empty. |
+| `duration`, `outro_start` | Seconds; duration is 2–120, and the outro starts between 0.5 and the duration. |
+| `audio`, `loop_video` | Optional relative local media paths; `audio` also accepts `synth:starlight`. Videos use MP4 or WebM. |
+| `fx_preset`, `focal_point`, `secondary_point` | Preset (`starlight-cyan`, `amber-firefly`, `sakura-petals`, `cyber-neon`, or `minimal-clean`) and normalized `[x, y]` anchors. |
+| `layers` | Images with `src`, `in_sec`, `in_dur`, `out_sec`, `out_dur`, `origin`, and `reveal` (`radial`, `fade`, `wipe`). `out_sec` starts the exit transition; use `0` to keep the layer until the overall outro. |
+| `bursts` | Effects with `start_sec`, `end_sec`, `from_point`, `to_point`, `scale`, `intensity`, `anamorphic`. Moving points and layer origins may extend slightly beyond the frame (−0.5 to 1.5). |
+| `subtitles` | Entries with `in_sec`, `out_sec`, `primary`, and `secondary` text. |
+
+Use slash-separated relative paths under the pack. Images may use PNG/JPEG/WebP/GIF/static SVG, and audio may use MP3/WAV/OGG/M4A/AAC/FLAC. SVGs should use presentation attributes and local fragment references, not embedded stylesheets, animation elements, scripts, or external resources.
+
 ## Custom Skin Authoring Guide
 
 Community skins live in `<config_dir>/kohaku-skin/skins/<skin-id>/` (or can be imported directly via **Import Skin (.zip / .css)** in Settings or the Session Floating Dock panel). You can also click **Starter Template (.zip)** in Settings to download a ready-to-edit pack.

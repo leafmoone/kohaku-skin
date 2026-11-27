@@ -1075,3 +1075,384 @@ html[data-ks-bg-active="true"] .ks-dock-popover {
   border-color: var(--kt-color-iolite, #5a4fcf);
   color: var(--kt-color-iolite, #5a4fcf);
 }
+
+/* ============================================================================
+ * 7. Live Wallpaper Layers, Boot Intro Stage & Zero-Code Workshop Modal
+ * ========================================================================== */
+
+#kohaku-skin-bg-root .ks-bg-video {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: var(--ks-bg-fit, cover);
+  object-position: center center;
+  pointer-events: none;
+}
+
+#kohaku-skin-bg-root .ks-bg-fx-canvas {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  pointer-events: none;
+}
+
+.ks-intro-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 2147483000;
+  overflow: hidden;
+  background: #060913;
+  user-select: none;
+  will-change: opacity;
+}
+
+.ks-intro-svg-defs {
+  position: absolute;
+  width: 0;
+  height: 0;
+  pointer-events: none;
+}
+
+.ks-intro-layer,
+.ks-intro-video {
+  position: absolute;
+  inset: -2%;
+  width: 104%;
+  height: 104%;
+  background-size: cover;
+  background-position: center center;
+  background-repeat: no-repeat;
+  object-fit: cover;
+  will-change: transform, opacity;
+  pointer-events: none;
+}
+
+.ks-intro-layer--edge {
+  filter: url(#ks-intro-edge-filter) contrast(1.6) brightness(1.35);
+  mix-blend-mode: screen;
+}
+
+.ks-intro-layer--neon {
+  filter: saturate(2.1) brightness(1.22) contrast(1.18);
+  mix-blend-mode: lighten;
+}
+
+.ks-intro-layer--hero {
+  filter: none;
+}
+
+.ks-intro-fx-canvas {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  pointer-events: none;
+}
+
+.ks-intro-subtitles {
+  position: absolute;
+  left: 50%;
+  bottom: 11%;
+  transform: translateX(-50%);
+  width: min(86vw, 760px);
+  text-align: center;
+  pointer-events: none;
+  font-family: "Noto Serif SC", "Source Han Serif SC", "Songti SC", Georgia, serif;
+  color: #f8fafc;
+  text-shadow:
+    0 2px 14px rgba(0, 0, 0, 0.78),
+    0 0 24px rgba(56, 189, 248, 0.35);
+}
+
+.ks-intro-sub-primary {
+  font-size: clamp(1.1rem, 2.3vw, 1.7rem);
+  font-weight: 500;
+  letter-spacing: 0.08em;
+  line-height: 1.45;
+}
+
+.ks-intro-sub-secondary {
+  margin-top: 0.35rem;
+  font-size: clamp(0.8rem, 1.25vw, 0.98rem);
+  letter-spacing: 0.06em;
+  color: rgba(226, 232, 240, 0.86);
+}
+
+.ks-intro-controls {
+  position: absolute;
+  right: 1.25rem;
+  bottom: 1.25rem;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  padding: 0.32rem 0.4rem;
+  border-radius: 9999px;
+  border: 1px solid rgba(255, 255, 255, 0.22);
+  background: rgba(12, 17, 29, 0.54);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  box-shadow: 0 8px 28px rgba(0, 0, 0, 0.35);
+  pointer-events: auto;
+}
+
+.ks-intro-ctrl-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.32rem;
+  padding: 0.28rem 0.62rem;
+  border: 1px solid transparent;
+  border-radius: 9999px;
+  background: transparent;
+  color: rgba(248, 250, 252, 0.92);
+  font-size: 0.72rem;
+  font-weight: 500;
+  cursor: pointer;
+  transition: background-color 0.15s ease, border-color 0.15s ease;
+}
+
+.ks-intro-ctrl-btn:hover {
+  background: rgba(255, 255, 255, 0.14);
+}
+
+.ks-intro-ctrl-btn.is-accent {
+  border-color: rgba(125, 211, 252, 0.65);
+  background: rgba(56, 189, 248, 0.22);
+  color: #e0f2fe;
+}
+
+.ks-intro-switch {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.42rem;
+  padding: 0.22rem 0.62rem 0.22rem 0.34rem;
+  border-radius: 9999px;
+  border: 1px solid var(--color-border, #cdc5ba);
+  background: color-mix(in srgb, var(--color-text, #2e2a26) 6%, transparent);
+  color: var(--color-text-muted, #6c655d);
+  font-size: var(--kt-fs-micro, 0.72rem);
+  font-weight: 500;
+  cursor: pointer;
+  transition: background-color 0.15s ease, border-color 0.15s ease, color 0.15s ease;
+}
+
+.ks-intro-switch-dot {
+  width: 0.65rem;
+  height: 0.65rem;
+  border-radius: 9999px;
+  background: var(--color-text-muted, #6c655d);
+  transition: background-color 0.15s ease, transform 0.15s ease;
+}
+
+.ks-intro-switch.is-on {
+  border-color: var(--kt-color-iolite, #5a4fcf);
+  background: color-mix(in srgb, var(--kt-color-iolite, #5a4fcf) 15%, transparent);
+  color: var(--color-text, #2e2a26);
+}
+
+.ks-intro-switch.is-on .ks-intro-switch-dot {
+  background: var(--kt-color-iolite, #5a4fcf);
+}
+
+.ks-intro-switch:disabled {
+  opacity: 0.55;
+  cursor: not-allowed;
+}
+
+.ks-workshop-backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 2520;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 1rem;
+  background: rgba(8, 12, 22, 0.62);
+  backdrop-filter: blur(6px);
+  -webkit-backdrop-filter: blur(6px);
+}
+
+.ks-workshop-modal {
+  width: min(94vw, 680px);
+  max-height: 90vh;
+  display: flex;
+  flex-direction: column;
+  border-radius: 0.9rem;
+  border: 1px solid var(--v2-line-strong, var(--color-border, #cdc5ba));
+  background: var(--v2-float, var(--color-surface, #ffffff));
+  color: var(--color-text, #2e2a26);
+  box-shadow: 0 24px 60px rgba(0, 0, 0, 0.32);
+  overflow: hidden;
+}
+
+.ks-workshop-header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 0.75rem;
+  padding: 0.95rem 1.15rem;
+  border-bottom: 1px solid var(--color-border, #cdc5ba);
+}
+
+.ks-workshop-title {
+  margin: 0;
+  font-size: 0.98rem;
+  font-weight: 600;
+}
+
+.ks-workshop-subtitle {
+  margin: 0.22rem 0 0;
+  font-size: 0.76rem;
+  color: var(--color-text-muted, #6c655d);
+}
+
+.ks-workshop-body {
+  padding: 1rem 1.15rem;
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+  gap: 0.85rem;
+}
+
+.ks-workshop-error {
+  padding: 0.5rem 0.7rem;
+  border-radius: 0.45rem;
+  border: 1px solid color-mix(in srgb, #dc2626 42%, transparent);
+  background: color-mix(in srgb, #dc2626 10%, transparent);
+  color: #dc2626;
+  font-size: 0.76rem;
+}
+
+.ks-workshop-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(175px, 1fr));
+  gap: 0.7rem;
+}
+
+.ks-workshop-field {
+  display: flex;
+  flex-direction: column;
+  gap: 0.34rem;
+}
+
+.ks-workshop-field--center {
+  justify-content: center;
+}
+
+.ks-workshop-label {
+  font-size: 0.74rem;
+  font-weight: 600;
+  color: var(--color-text-muted, #6c655d);
+}
+
+.ks-workshop-file {
+  font-size: 0.75rem;
+  color: var(--color-text, #2e2a26);
+}
+
+.ks-workshop-check {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.45rem;
+  font-size: 0.76rem;
+  color: var(--color-text, #2e2a26);
+  cursor: pointer;
+}
+
+.ks-workshop-focal-wrap {
+  margin-top: 0.35rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.3rem;
+}
+
+.ks-workshop-focal-hint {
+  font-size: 0.72rem;
+  color: var(--color-text-muted, #6c655d);
+}
+
+.ks-workshop-focal-stage {
+  position: relative;
+  width: 100%;
+  max-height: 220px;
+  aspect-ratio: 16 / 9;
+  border-radius: 0.55rem;
+  overflow: hidden;
+  border: 1px solid var(--color-border, #cdc5ba);
+  cursor: crosshair;
+  background: #0c101b;
+}
+
+.ks-workshop-focal-img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+}
+
+.ks-workshop-reticle {
+  position: absolute;
+  width: 24px;
+  height: 24px;
+  transform: translate(-50%, -50%);
+  border-radius: 9999px;
+  border: 2px solid #7dd3fc;
+  box-shadow:
+    0 0 0 2px rgba(0, 0, 0, 0.5),
+    0 0 14px rgba(56, 189, 248, 0.9);
+  pointer-events: none;
+}
+
+.ks-workshop-reticle::before,
+.ks-workshop-reticle::after {
+  content: "";
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  background: #ffffff;
+  transform: translate(-50%, -50%);
+}
+
+.ks-workshop-reticle::before {
+  width: 14px;
+  height: 2px;
+}
+
+.ks-workshop-reticle::after {
+  width: 2px;
+  height: 14px;
+}
+
+.ks-workshop-subhead {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.5rem;
+}
+
+.ks-workshop-subrow {
+  display: grid;
+  grid-template-columns: 64px 64px 1fr 1fr auto;
+  gap: 0.4rem;
+  align-items: center;
+}
+
+.ks-workshop-time {
+  text-align: center;
+}
+
+.ks-workshop-footer {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 0.55rem;
+  padding: 0.8rem 1.15rem;
+  border-top: 1px solid var(--color-border, #cdc5ba);
+}
+
+.ks-workshop-submit-btn {
+  border-color: var(--kt-color-iolite, #5a4fcf);
+  background: color-mix(in srgb, var(--kt-color-iolite, #5a4fcf) 16%, transparent);
+  font-weight: 600;
+}

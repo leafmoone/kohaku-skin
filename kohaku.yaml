@@ -1,9 +1,9 @@
 name: kohaku-skin
-version: 0.1.0
+version: 0.2.0
 framework: ">=2.2.0,<3.0.0"
 license: MIT
 author: leafmoone
-description: Extensible UI skin, custom wallpaper, and session readability engine for KohakuTerrarium.
+description: Extensible UI skin, boot intro cinema, live wallpaper, and session readability engine for KohakuTerrarium.
 repository: https://github.com/leafmoone/kohaku-skin
 ui:
   sdk: ">=1.2,<2"

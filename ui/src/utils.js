@@ -22,6 +22,23 @@ export const BACKGROUND_PRESETS = Object.freeze({
   }),
 })
 
+export const FX_PRESETS = Object.freeze([
+  "starlight-cyan",
+  "amber-firefly",
+  "sakura-petals",
+  "cyber-neon",
+  "minimal-clean",
+])
+
+export const DEFAULT_INTRO_PREFS = Object.freeze({
+  enabled: false,
+  active_intro_id: "kohaku-starlight",
+  play_on_startup: true,
+  keep_live_wallpaper: true,
+  volume: 0.85,
+  muted: false,
+})
+
 /**
  * Clamp a numeric value within [min, max], returning fallback for invalid input.
  */
@@ -115,6 +132,224 @@ export function buildWallpaperUrl(apiBase, filename) {
  */
 export function buildTemplateZipUrl(apiBase) {
   return `${apiBase}/template.zip`
+}
+
+/**
+ * Build a backend asset URL for a file inside an intro pack.
+ * Always routes through /intros/{intro_id}/assets/{asset_path}, percent-encoding
+ * special filename characters such as "#" instead of treating them as URL fragments.
+ */
+export function buildIntroAssetUrl(apiBase, introId, rawRelPath) {
+  if (typeof rawRelPath !== "string" || typeof introId !== "string" || !introId.trim()) return ""
+  const trimmed = rawRelPath.trim()
+  if (!trimmed) return ""
+  if (/^https?:\/\//i.test(trimmed) || /^synth:/i.test(trimmed)) return trimmed
+
+  const encoded = encodePathSegments(trimmed)
+  if (!encoded) return ""
+
+  const assetPath = encoded.startsWith("assets/") ? encoded : `assets/${encoded}`
+  return `${apiBase}/intros/${encodeURIComponent(introId)}/${assetPath}`
+}
+
+/**
+ * Build the download URL for exporting an installed intro pack as a zip archive.
+ */
+export function buildIntroExportZipUrl(apiBase, introId) {
+  if (typeof introId !== "string" || !introId.trim()) return ""
+  return `${apiBase}/intros/${encodeURIComponent(introId.trim())}/export.zip`
+}
+
+/**
+ * Build the download URL for the starter intro pack template zip.
+ */
+export function buildIntroTemplateZipUrl(apiBase) {
+  return `${apiBase}/intro-template.zip`
+}
+
+/**
+ * Smooth cubic Hermite interpolation clamped to [0, 1].
+ */
+export function smoothstep(edge0, edge1, x) {
+  if (edge1 <= edge0) return x >= edge1 ? 1 : 0
+  const t = clampNumber((x - edge0) / (edge1 - edge0), 0, 1, 0)
+  return t * t * (3 - 2 * t)
+}
+
+/**
+ * Quintic smootherstep interpolation (zero 1st and 2nd derivatives at endpoints).
+ */
+export function smootherstep(edge0, edge1, x) {
+  if (edge1 <= edge0) return x >= edge1 ? 1 : 0
+  const t = clampNumber((x - edge0) / (edge1 - edge0), 0, 1, 0)
+  return t * t * t * (t * (t * 6 - 15) + 10)
+}
+
+/**
+ * Normalize intro preferences safely for backward compatibility with older preferences.json.
+ */
+export function normalizeIntroPrefs(rawIntro) {
+  const src = rawIntro && typeof rawIntro === "object" ? rawIntro : {}
+  return {
+    enabled: typeof src.enabled === "boolean" ? src.enabled : DEFAULT_INTRO_PREFS.enabled,
+    active_intro_id:
+      typeof src.active_intro_id === "string" && src.active_intro_id.trim()
+        ? src.active_intro_id.trim()
+        : null,
+    play_on_startup:
+      typeof src.play_on_startup === "boolean"
+        ? src.play_on_startup
+        : DEFAULT_INTRO_PREFS.play_on_startup,
+    keep_live_wallpaper:
+      typeof src.keep_live_wallpaper === "boolean"
+        ? src.keep_live_wallpaper
+        : DEFAULT_INTRO_PREFS.keep_live_wallpaper,
+    volume: clampNumber(src.volume, 0, 1, DEFAULT_INTRO_PREFS.volume),
+    muted: typeof src.muted === "boolean" ? src.muted : DEFAULT_INTRO_PREFS.muted,
+  }
+}
+
+/**
+ * Normalize a normalized [x, y] coordinate pair within [0, 1] for focal/secondary points.
+ */
+export function normalizePointPair(rawPoint, fallbackX, fallbackY) {
+  if (Array.isArray(rawPoint) && rawPoint.length >= 2) {
+    return [
+      clampNumber(rawPoint[0], 0, 1, fallbackX),
+      clampNumber(rawPoint[1], 0, 1, fallbackY),
+    ]
+  }
+  return [fallbackX, fallbackY]
+}
+
+/**
+ * Normalize a motion [x, y] coordinate pair within [-0.5, 1.5] for off-screen layer/burst paths.
+ */
+export function normalizeMotionPointPair(rawPoint, fallbackX, fallbackY) {
+  if (Array.isArray(rawPoint) && rawPoint.length >= 2) {
+    return [
+      clampNumber(rawPoint[0], -0.5, 1.5, fallbackX),
+      clampNumber(rawPoint[1], -0.5, 1.5, fallbackY),
+    ]
+  }
+  return [fallbackX, fallbackY]
+}
+
+/**
+ * Compute opacity in [0, 1] for an intro director layer at playback timestamp t.
+ */
+export function computeLayerOpacity(layer, t) {
+  if (!layer || typeof layer !== "object") return 0
+  const inSec = clampNumber(layer.in_sec, 0, 120, 0)
+  const inDur = clampNumber(layer.in_dur, 0, 60, 0)
+  const outSec = clampNumber(layer.out_sec, 0, 120, 0)
+  const outDur = clampNumber(layer.out_dur, 0, 60, 0)
+
+  if (t < inSec) return 0
+  const fadeIn = inDur > 0 ? smoothstep(inSec, inSec + inDur, t) : 1
+  let fadeOut = 1
+  if (outSec > inSec && outDur > 0 && t >= outSec) {
+    fadeOut = 1 - smoothstep(outSec, outSec + outDur, t)
+  } else if (outSec > inSec && outDur === 0 && t >= outSec) {
+    fadeOut = 0
+  }
+  return clampNumber(fadeIn * fadeOut, 0, 1, 0)
+}
+
+/**
+ * Compute active burst parameters (position, intensity, scale, anamorphic) at time t.
+ */
+export function computeBurstState(burst, t) {
+  if (!burst || typeof burst !== "object") return null
+  const start = clampNumber(burst.start_sec, 0, 120, 0)
+  const end = clampNumber(burst.end_sec, start, 120, start)
+  if (end <= start || t < start || t > end) return null
+  const p = (t - start) / (end - start)
+  const rise = smoothstep(0, 0.28, p)
+  const fall = 1 - smoothstep(0.32, 1, p)
+  const envelope = rise * fall
+  if (envelope <= 0.005) return null
+  const fromPt = normalizeMotionPointPair(burst.from_point, 0.5, 0.5)
+  const toPt = normalizeMotionPointPair(burst.to_point, fromPt[0], fromPt[1])
+  const move = smoothstep(0, 1, p)
+  return {
+    x: fromPt[0] + (toPt[0] - fromPt[0]) * move,
+    y: fromPt[1] + (toPt[1] - fromPt[1]) * move,
+    intensity: clampNumber(burst.intensity, 0.1, 3, 1) * envelope,
+    scale: clampNumber(burst.scale, 0.2, 4, 1) * (0.65 + 0.55 * rise),
+    anamorphic: clampNumber(burst.anamorphic, 0, 3, 1) * envelope,
+    progress: p,
+  }
+}
+
+/**
+ * Resolve the currently active subtitle with smooth fade opacity at playback time t.
+ */
+export function findActiveSubtitle(subtitles, t) {
+  if (!Array.isArray(subtitles) || subtitles.length === 0) return null
+  for (const sub of subtitles) {
+    if (!sub || typeof sub !== "object") continue
+    const inSec = clampNumber(sub.in_sec, 0, 120, 0)
+    const outSec = clampNumber(sub.out_sec, inSec, 120, inSec)
+    if (outSec <= inSec || t < inSec || t > outSec) continue
+    const fadeDur = Math.min(0.45, (outSec - inSec) * 0.28)
+    const fadeIn = smoothstep(inSec, inSec + fadeDur, t)
+    const fadeOut = 1 - smoothstep(outSec - fadeDur, outSec, t)
+    const opacity = clampNumber(fadeIn * fadeOut, 0, 1, 0)
+    if (opacity > 0.01) {
+      return {
+        primary: typeof sub.primary === "string" ? sub.primary : "",
+        secondary: typeof sub.secondary === "string" ? sub.secondary : "",
+        opacity,
+      }
+    }
+  }
+  return null
+}
+
+/**
+ * Resolve the live wallpaper descriptor from ownerState when intro live wallpaper is active.
+ * Returns null if intro or keep_live_wallpaper is disabled, falling back to static wallpaper.
+ */
+export function resolveLiveWallpaperSource(ownerState, apiBase) {
+  if (!ownerState || typeof ownerState !== "object") return null
+  const prefs = ownerState.preferences
+  if (!prefs || typeof prefs !== "object") return null
+  const introPrefs = normalizeIntroPrefs(prefs.intro)
+  if (!introPrefs.enabled || !introPrefs.keep_live_wallpaper) return null
+  const payload = ownerState.active_intro_payload
+  if (!payload || typeof payload !== "object" || typeof payload.id !== "string" || !payload.id.trim()) {
+    return null
+  }
+  const fxPreset = FX_PRESETS.includes(payload.fx_preset) ? payload.fx_preset : "starlight-cyan"
+  const focalPoint = normalizePointPair(payload.focal_point, 0.5, 0.45)
+
+  if (typeof payload.loop_video === "string" && payload.loop_video.trim()) {
+    const url = buildIntroAssetUrl(apiBase, payload.id, payload.loop_video)
+    if (url) return { kind: "video", url, fxPreset, focalPoint, introId: payload.id }
+  }
+  if (payload.mode === "video" && typeof payload.video === "string" && payload.video.trim()) {
+    const url = buildIntroAssetUrl(apiBase, payload.id, payload.video)
+    if (url) return { kind: "video", url, fxPreset, focalPoint, introId: payload.id }
+  }
+  if (
+    payload.mode === "single" &&
+    typeof payload.auto_stages_image === "string" &&
+    payload.auto_stages_image.trim()
+  ) {
+    const url = buildIntroAssetUrl(apiBase, payload.id, payload.auto_stages_image)
+    if (url) return { kind: "image", url, fxPreset, focalPoint, introId: payload.id }
+  }
+  if (payload.mode === "director" && Array.isArray(payload.layers) && payload.layers.length > 0) {
+    for (let i = payload.layers.length - 1; i >= 0; i -= 1) {
+      const layer = payload.layers[i]
+      if (layer && typeof layer.src === "string" && layer.src.trim()) {
+        const url = buildIntroAssetUrl(apiBase, payload.id, layer.src)
+        if (url) return { kind: "image", url, fxPreset, focalPoint, introId: payload.id }
+      }
+    }
+  }
+  return null
 }
 
 /**

@@ -6,11 +6,13 @@
 
 import { watch } from "vue"
 
+import { createFxCanvasController } from "./IntroFxCanvas.js"
 import {
   buildApiBase,
   clampNumber,
   escapeCssUrl,
   resolveBackgroundUrl,
+  resolveLiveWallpaperSource,
   rewriteRelativeCssUrls,
   sanitizeCssIdentifier,
 } from "./utils.js"
@@ -93,6 +95,130 @@ function removeActiveStyle(doc) {
  */
 export function createSkinEngine(pkgName) {
   const appliedTokenKeys = new Set()
+  let liveFxController = null
+  let liveVideoUrl = ""
+  let liveFxPreset = ""
+
+  function teardownLiveMedia(doc) {
+    if (liveFxController) {
+      liveFxController.dispose()
+      liveFxController = null
+    }
+    liveVideoUrl = ""
+    liveFxPreset = ""
+    if (!doc) return
+    const bgRoot = doc.getElementById(BG_ROOT_ID)
+    if (!bgRoot) return
+    const existingVideo =
+      typeof bgRoot.querySelector === "function" ? bgRoot.querySelector(".ks-bg-video") : null
+    if (existingVideo) {
+      try {
+        if (typeof existingVideo.pause === "function") existingVideo.pause()
+        existingVideo.src = ""
+      } catch (_err) {
+        // Ignore video cleanup errors.
+      }
+      if (existingVideo.parentNode) {
+        existingVideo.parentNode.removeChild(existingVideo)
+      }
+    }
+    const existingCanvas =
+      typeof bgRoot.querySelector === "function" ? bgRoot.querySelector(".ks-bg-fx-canvas") : null
+    if (existingCanvas && existingCanvas.parentNode) {
+      existingCanvas.parentNode.removeChild(existingCanvas)
+    }
+  }
+
+  function syncLiveMedia(doc, liveSource) {
+    const bgRoot = ensureBgRoot(doc)
+    const dimmerEl =
+      typeof bgRoot.querySelector === "function" ? bgRoot.querySelector(".ks-bg-dimmer") : null
+
+    if (liveSource.kind === "video") {
+      let videoEl =
+        typeof bgRoot.querySelector === "function" ? bgRoot.querySelector(".ks-bg-video") : null
+      if (!videoEl) {
+        videoEl = doc.createElement("video")
+        videoEl.className = "ks-bg-video"
+        videoEl.muted = true
+        videoEl.loop = true
+        videoEl.autoplay = true
+        videoEl.setAttribute("muted", "")
+        videoEl.setAttribute("loop", "")
+        videoEl.setAttribute("playsinline", "")
+        if (dimmerEl && dimmerEl.parentNode === bgRoot) {
+          bgRoot.insertBefore(videoEl, dimmerEl)
+        } else {
+          bgRoot.appendChild(videoEl)
+        }
+      }
+      if (liveVideoUrl !== liveSource.url) {
+        liveVideoUrl = liveSource.url
+        videoEl.src = liveSource.url
+        if (typeof videoEl.play === "function") {
+          const p = videoEl.play()
+          if (p && typeof p.catch === "function") p.catch(() => {})
+        }
+      }
+    } else {
+      const existingVideo =
+        typeof bgRoot.querySelector === "function" ? bgRoot.querySelector(".ks-bg-video") : null
+      if (existingVideo) {
+        try {
+          if (typeof existingVideo.pause === "function") existingVideo.pause()
+          existingVideo.src = ""
+        } catch (_err) {
+          // Ignore pause errors.
+        }
+        if (existingVideo.parentNode) {
+          existingVideo.parentNode.removeChild(existingVideo)
+        }
+      }
+      liveVideoUrl = ""
+    }
+
+    if (liveSource.fxPreset === "minimal-clean") {
+      if (liveFxController) {
+        liveFxController.dispose()
+        liveFxController = null
+      }
+      liveFxPreset = "minimal-clean"
+      const oldCanvas =
+        typeof bgRoot.querySelector === "function" ? bgRoot.querySelector(".ks-bg-fx-canvas") : null
+      if (oldCanvas && oldCanvas.parentNode) {
+        oldCanvas.parentNode.removeChild(oldCanvas)
+      }
+      return
+    }
+
+    let canvasEl =
+      typeof bgRoot.querySelector === "function" ? bgRoot.querySelector(".ks-bg-fx-canvas") : null
+    if (!canvasEl) {
+      canvasEl = doc.createElement("canvas")
+      canvasEl.className = "ks-bg-fx-canvas"
+      canvasEl.setAttribute("aria-hidden", "true")
+      if (dimmerEl && dimmerEl.parentNode === bgRoot) {
+        bgRoot.insertBefore(canvasEl, dimmerEl)
+      } else {
+        bgRoot.appendChild(canvasEl)
+      }
+    }
+
+    if (!liveFxController) {
+      liveFxPreset = liveSource.fxPreset
+      liveFxController = createFxCanvasController(canvasEl, {
+        preset: liveSource.fxPreset,
+        mode: "ambient",
+        bursts: [],
+        doc,
+        win: typeof window !== "undefined" ? window : null,
+      })
+      liveFxController.start()
+    } else if (liveFxPreset !== liveSource.fxPreset) {
+      liveFxPreset = liveSource.fxPreset
+      liveFxController.setPreset(liveSource.fxPreset)
+    }
+  }
 
   function clearInlineTokens(rootEl) {
     for (const key of appliedTokenKeys) {
@@ -108,6 +234,7 @@ export function createSkinEngine(pkgName) {
 
   function clearAll(doc) {
     if (!doc || !doc.documentElement) return
+    teardownLiveMedia(doc)
     const rootEl = doc.documentElement
     rootEl.removeAttribute("data-ks-active")
     rootEl.removeAttribute("data-ks-skin")
@@ -177,8 +304,9 @@ export function createSkinEngine(pkgName) {
       removeActiveStyle(doc)
     }
 
-    const bgUrl = resolveBackgroundUrl(ownerState, apiBase)
-    if (bgUrl) {
+    const liveSource = resolveLiveWallpaperSource(ownerState, apiBase)
+    const staticBgUrl = liveSource ? "" : resolveBackgroundUrl(ownerState, apiBase)
+    if (liveSource || staticBgUrl) {
       const bg = prefs.background && typeof prefs.background === "object" ? prefs.background : {}
       const fit = bg.fit === "contain" ? "contain" : "cover"
       const dim = clampNumber(bg.dim, 0, 0.85, 0.24)
@@ -187,7 +315,12 @@ export function createSkinEngine(pkgName) {
       const readability = clampNumber(bg.readability_scrim, 0, 1, 0.55)
 
       rootEl.setAttribute("data-ks-bg-active", "true")
-      setTrackedProperty(rootEl, "--ks-bg-image", `url("${escapeCssUrl(bgUrl)}")`)
+      if (liveSource && liveSource.kind === "video") {
+        setTrackedProperty(rootEl, "--ks-bg-image", "none")
+      } else {
+        const imgUrl = liveSource ? liveSource.url : staticBgUrl
+        setTrackedProperty(rootEl, "--ks-bg-image", `url("${escapeCssUrl(imgUrl)}")`)
+      }
       setTrackedProperty(rootEl, "--ks-bg-fit", fit)
       setTrackedProperty(rootEl, "--ks-bg-dim", String(dim))
       setTrackedProperty(rootEl, "--ks-backdrop-blur", `${blur}px`)
@@ -198,8 +331,14 @@ export function createSkinEngine(pkgName) {
       } else {
         rootEl.removeAttribute("data-ks-plate")
       }
-      ensureBgRoot(doc)
+      if (liveSource) {
+        syncLiveMedia(doc, liveSource)
+      } else {
+        teardownLiveMedia(doc)
+        ensureBgRoot(doc)
+      }
     } else {
+      teardownLiveMedia(doc)
       rootEl.removeAttribute("data-ks-bg-active")
       rootEl.removeAttribute("data-ks-plate")
       removeBgRoot(doc)

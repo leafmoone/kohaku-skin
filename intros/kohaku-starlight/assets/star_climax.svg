@@ -1,0 +1,22 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1600" height="900" viewBox="0 0 1600 900">
+  <defs>
+    <radialGradient id="halo"><stop stop-color="#fff8c3" stop-opacity=".64"/><stop offset=".28" stop-color="#ffc777" stop-opacity=".28"/><stop offset=".67" stop-color="#ffad59" stop-opacity=".08"/><stop offset="1" stop-color="#f5aa51" stop-opacity="0"/></radialGradient>
+    <linearGradient id="gold" x2="1" y2="1"><stop stop-color="#fff6ce"/><stop offset=".41" stop-color="#ffc982"/><stop offset="1" stop-color="#a36936"/></linearGradient>
+    <filter id="blur" x="-42%" y="-42%" width="184%" height="184%"><feGaussianBlur stdDeviation="13"/></filter>
+    <path id="core" d="M800 284C817 359 840 383 915 400 840 417 817 441 800 516 783 441 760 417 685 400 760 383 783 359 800 284Z"/>
+    <path id="star" d="M0-8 1.8-1.8 8 0 1.8 1.8 0 8-1.8 1.8-8 0-1.8-1.8Z"/>
+  </defs>
+  <ellipse cx="800" cy="400" rx="427" ry="341" fill="url(#halo)"/>
+  <g fill="none" stroke="url(#gold)">
+    <circle cx="800" cy="400" r="254" stroke-dasharray="72 12 3 12" opacity=".43" transform="rotate(10 800 400)"/>
+    <circle cx="800" cy="400" r="221" stroke-width="2.2" opacity=".81"/><circle cx="800" cy="400" r="168" stroke-width="1.4" opacity=".53"/><circle cx="800" cy="400" r="120" opacity=".44"/>
+    <path d="M800 151 1049 400 800 649 551 400ZM800 211 989 400 800 589 611 400ZM623 223H977V577H623Z" opacity=".66"/>
+    <path d="M800 113V280M800 519V687M491 400H680M919 400H1109M652 252 739 339M861 339 948 252M652 548 739 461M861 461 948 548" opacity=".66"/>
+    <path d="M468 687H1132M507 670H1093M578 651H1022M644 632H956M521 712H1079" opacity=".49"/>
+    <path d="M526 577V424L557 387 584 357 611 388M1074 577V424L1043 387 1016 357 989 388" opacity=".48"/>
+    <path d="M252 598Q800 791 1348 598M326 588Q800 740 1274 588" opacity=".28" stroke-dasharray="4 10"/>
+  </g>
+  <use href="#core" fill="#ffbd70" opacity=".83" filter="url(#blur)"/><use href="#core" fill="#ffdc9d" fill-opacity=".2" stroke="url(#gold)" stroke-width="2.3"/>
+  <path d="M800 334Q810 389 865 400 810 411 800 466 790 411 735 400 790 389 800 334Z" fill="#fff3cb" stroke="#fff7df"/><circle cx="800" cy="400" r="16" fill="#fffbe8"/>
+  <g fill="#ffdda8"><use href="#star" x="800" y="151"/><use href="#star" x="800" y="649"/><use href="#star" x="551" y="400"/><use href="#star" x="1049" y="400"/><use href="#star" x="628" y="223"/><use href="#star" x="973" y="223"/><use href="#star" x="628" y="577"/><use href="#star" x="973" y="577"/><use href="#star" x="518" y="572"/><use href="#star" x="1082" y="572"/><circle cx="416" cy="329" r="2.6"/><circle cx="1184" cy="329" r="2.6"/><circle cx="455" cy="480" r="1.7"/><circle cx="1145" cy="480" r="1.7"/><circle cx="702" cy="168" r="2.3"/><circle cx="898" cy="168" r="2.3"/></g>
+</svg>

@@ -4,8 +4,8 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "kohaku-skin"
-version = "0.1.0"
-description = "Extensible UI skin, custom wallpaper, and session readability engine for KohakuTerrarium"
+version = "0.2.0"
+description = "Extensible UI skin, boot intro cinema, live wallpaper, and session readability engine for KohakuTerrarium"
 readme = "README.md"
 license = { text = "MIT" }
 requires-python = ">=3.11"

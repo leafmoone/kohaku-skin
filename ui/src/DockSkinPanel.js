@@ -16,11 +16,13 @@ import {
 
 import { bindOwnerToEngine } from "./engine.js"
 import { resolveSkinName, syncSettingsHostLabels, translateSkinText } from "./i18n.js"
+import { createIntroPlaybackControl, createIntroStageComponent } from "./IntroStage.js"
 import {
   BACKGROUND_PRESETS,
   clampNumber,
   detectSkinImportFormat,
   extractErrorMessage,
+  normalizeIntroPrefs,
   readFileAsBase64,
 } from "./utils.js"
 
@@ -398,13 +400,17 @@ export function createStatusSkinItem(panelControl) {
 }
 
 /**
- * Create the stage & dock skin popover component bound to the skin engine and panel control.
+ * Create the stage & dock skin popover component bound to the skin engine, panel control, and intro playback control.
  */
-export function createDockSkinPanel(engine, panelControl) {
+export function createDockSkinPanel(engine, panelControl, introControl) {
+  const effectiveIntroControl = introControl || createIntroPlaybackControl()
+  const IntroStage = createIntroStageComponent(effectiveIntroControl)
+
   return {
     name: "KohakuSkinDockPanel",
     components: {
       Teleport,
+      IntroStage,
     },
     setup() {
       const kt = useExtension()
@@ -455,6 +461,16 @@ export function createDockSkinPanel(engine, panelControl) {
       const hasCustomWallpaper = computed(
         () => Boolean(bg.value && (bg.value.uploaded_file || bg.value.custom_url)),
       )
+      const intros = computed(() =>
+        ownerState.value && Array.isArray(ownerState.value.intros) ? ownerState.value.intros : [],
+      )
+      const introPrefs = computed(() =>
+        normalizeIntroPrefs(prefs.value ? prefs.value.intro : null),
+      )
+      const activeIntroPayload = computed(
+        () => (ownerState.value && ownerState.value.active_intro_payload) || null,
+      )
+      const pkgName = computed(() => (kt && kt.package ? String(kt.package) : "kohaku-skin"))
 
       function refreshPopoverPosition() {
         popoverStyle.value = computePopoverStyle(docRef, winRef, activeAnchorEl)
@@ -813,9 +829,42 @@ export function createDockSkinPanel(engine, panelControl) {
         }
       }
 
+      async function disableIntro() {
+        try {
+          await runAction("set_intro", { enabled: false })
+        } catch (_handled) {
+          // Error already surfaced via notify in runAction.
+        }
+      }
+
+      async function selectIntroPack(introId) {
+        try {
+          await runAction("set_intro", { enabled: true, active_intro_id: introId })
+        } catch (_handled) {
+          // Error already surfaced via notify in runAction.
+        }
+      }
+
+      function previewActiveIntro() {
+        const target =
+          activeIntroPayload.value ||
+          intros.value.find((item) => item && item.id === introPrefs.value.active_intro_id) ||
+          intros.value[0] ||
+          null
+        if (!target) {
+          notify(tr("skin.introToastNoActive", {}), "warning")
+          return
+        }
+        open.value = false
+        effectiveIntroControl.requestReplay(target)
+      }
+
       return {
         open,
         busy,
+        host,
+        ownerState,
+        pkgName,
         skinFileInput,
         bgFileInput,
         popoverEl,
@@ -830,6 +879,9 @@ export function createDockSkinPanel(engine, panelControl) {
         activeSkinId,
         bgMode,
         hasCustomWallpaper,
+        intros,
+        introPrefs,
+        activeIntroPayload,
         tr,
         skinLabel,
         startDomIntegration,
@@ -849,10 +901,14 @@ export function createDockSkinPanel(engine, panelControl) {
         onReadabilityInput,
         onBlurInput,
         applyPreset,
+        disableIntro,
+        selectIntroPack,
+        previewActiveIntro,
       }
     },
     template: `
       <span class="ks-stage-anchor" aria-hidden="true">
+        <IntroStage :owner-state="ownerState" :host-info="host" :pkg-name="pkgName" />
         <Teleport to="body">
           <input
             ref="skinFileInput"
@@ -1093,6 +1149,47 @@ export function createDockSkinPanel(engine, panelControl) {
                     @input="onBlurInput"
                   />
                   <span class="ks-dock-slider-num">{{ blurDraft }}px</span>
+                </div>
+              </div>
+
+              <div v-if="intros.length > 0" class="ks-dock-section" data-testid="ks-dock-intro-section">
+                <div class="ks-dock-section-head">
+                  <span>{{ tr("skin.floatIntroLabel", {}) }}</span>
+                </div>
+                <div class="ks-dock-skin-list">
+                  <button
+                    type="button"
+                    class="ks-dock-chip"
+                    :class="{ 'ks-dock-chip--active': !introPrefs.enabled }"
+                    :disabled="busy"
+                    data-testid="ks-dock-intro-off"
+                    @click="disableIntro"
+                  >
+                    {{ tr("skin.floatIntroOff", {}) }}
+                  </button>
+                  <button
+                    v-for="pack in intros"
+                    :key="pack.id"
+                    type="button"
+                    class="ks-dock-chip"
+                    :class="{ 'ks-dock-chip--active': introPrefs.enabled && introPrefs.active_intro_id === pack.id }"
+                    :disabled="busy"
+                    :data-testid="'ks-dock-intro-' + pack.id"
+                    @click="selectIntroPack(pack.id)"
+                  >
+                    {{ pack.name || pack.id }}
+                  </button>
+                </div>
+                <div class="ks-dock-btn-row">
+                  <button
+                    type="button"
+                    class="ks-dock-btn"
+                    :disabled="busy || intros.length === 0"
+                    data-testid="ks-dock-intro-preview"
+                    @click="previewActiveIntro"
+                  >
+                    {{ tr("skin.floatIntroPreview", {}) }}
+                  </button>
                 </div>
               </div>
             </div>

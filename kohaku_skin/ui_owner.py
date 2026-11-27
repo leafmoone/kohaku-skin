@@ -12,25 +12,31 @@ from kohakuterrarium.modules.ui_owner import (
 )
 
 from .models import (
+    DEFAULT_INTRO_PREFERENCES,
     ActiveSkinState,
     OwnerState,
     filename,
     nullable_skin_id,
     object_fields,
     parse_background,
+    parse_intro_preferences,
     require_bool,
     require_choice,
     require_fields,
     require_skin_id,
 )
 from .storage import (
+    CUSTOM_INTROS_HINT,
     CUSTOM_SKINS_HINT,
     SkinPack,
     StorageScope,
     decode_upload,
+    delete_intro,
     delete_skin,
+    find_intro,
     find_skin,
     install_skin,
+    list_intros,
     list_skins,
     load_active_payload,
     load_preferences,
@@ -41,6 +47,7 @@ from .storage import (
 )
 
 _LOG = logging.getLogger(__name__)
+STATE_LOCK = RLock()
 
 
 def _active_state(pack: SkinPack | None) -> ActiveSkinState | None:
@@ -63,13 +70,16 @@ class PackageUI(UIOwnerMixin):
     """Synchronize owner actions and publish updates to the calling user."""
 
     def __init__(self) -> None:
-        self._lock = RLock()
+        self._lock = STATE_LOCK
 
     def ui_state(self, context: UICallContext | None = None) -> OwnerState:
         with self._lock:
             scope = _scope(context)
             preferences = load_preferences(scope)
             skins = list_skins(scope)
+            intros = list_intros(scope)
+            intro_id = preferences.intro.active_intro_id
+            intro = intros.get(intro_id) if preferences.intro.enabled and intro_id is not None else None
             active = None
             if preferences.skin_enabled and preferences.active_skin_id is not None:
                 active = skins.get(preferences.active_skin_id)
@@ -78,6 +88,9 @@ class PackageUI(UIOwnerMixin):
                 "skins": [pack.manifest.to_state() for pack in skins.values()],
                 "active_skin_payload": _active_state(active),
                 "custom_skins_rel_hint": CUSTOM_SKINS_HINT,
+                'intros': [pack.manifest.to_state() for pack in intros.values()],
+                'active_intro_payload': intro.manifest.to_state() if intro is not None else None,
+                'custom_intros_rel_hint': CUSTOM_INTROS_HINT,
             }
 
     def ui_call(
@@ -147,6 +160,22 @@ class PackageUI(UIOwnerMixin):
             )
             save_preferences(scope, replace(preferences, background=updated))
             remove_wallpaper(scope, background.uploaded_file)
+        elif action == "set_intro":
+            intro = parse_intro_preferences(args, preferences.intro)
+            if intro.enabled and intro.active_intro_id is not None and find_intro(scope, intro.active_intro_id) is None:
+                raise OwnerArgumentError(f"Unknown intro: {intro.active_intro_id!r}")
+            save_preferences(scope, replace(preferences, intro=intro))
+        elif action == "rescan_intros":
+            require_fields(args, ())
+        elif action == "delete_custom_intro":
+            require_fields(args, ("intro_id",))
+            intro_id = require_skin_id(args.get("intro_id"), "intro_id")
+            delete_intro(scope, intro_id)
+            if preferences.intro.active_intro_id == intro_id:
+                intro = replace(
+                    preferences.intro, enabled=False, active_intro_id=DEFAULT_INTRO_PREFERENCES.active_intro_id
+                )
+                save_preferences(scope, replace(preferences, intro=intro))
         else:
             raise OwnerArgumentError(f"Unknown action: {action!r}")
 

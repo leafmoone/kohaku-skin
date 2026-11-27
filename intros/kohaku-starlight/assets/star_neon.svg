@@ -1,0 +1,23 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1600" height="900" viewBox="0 0 1600 900">
+  <defs>
+    <radialGradient id="aura"><stop stop-color="#c8fbff" stop-opacity=".22"/><stop offset=".38" stop-color="#37daca" stop-opacity=".12"/><stop offset="1" stop-color="#44e0bf" stop-opacity="0"/></radialGradient>
+    <linearGradient id="charge" x2="1" y2="1"><stop stop-color="#60f3dc"/><stop offset=".52" stop-color="#99cad1"/><stop offset="1" stop-color="#ffc37a"/></linearGradient>
+    <linearGradient id="spire" x2="0" y2="1"><stop stop-color="#fff1b0"/><stop offset="1" stop-color="#40ddc9" stop-opacity="0"/></linearGradient>
+    <filter id="glow" x="-40%" y="-40%" width="180%" height="180%"><feGaussianBlur stdDeviation="6"/></filter>
+    <path id="diamond" d="M0-9 4 0 0 9-4 0Z"/>
+    <path id="circuit" d="M596 292A223 223 0 0 1 836 180M958 245A223 223 0 0 1 1018 438M984 530A223 223 0 0 1 751 617M680 589A223 223 0 0 1 581 439M570 448Q739 292 1040 310M559 488Q830 506 1039 314"/>
+  </defs>
+  <ellipse cx="800" cy="400" rx="340" ry="310" fill="url(#aura)"/>
+  <g fill="none" stroke="url(#charge)">
+    <use href="#circuit" stroke-width="7" filter="url(#glow)" opacity=".57"/><use href="#circuit" stroke-width="1.7"/>
+    <circle cx="800" cy="400" r="195" stroke-dasharray="25 10 4 10" opacity=".63" transform="rotate(-15 800 400)"/>
+    <circle cx="800" cy="400" r="145" stroke-dasharray="2 8" opacity=".79"/>
+    <path d="M800 204 996 400 800 596 604 400ZM800 249 951 400 800 551 649 400Z" opacity=".58"/>
+    <path d="M800 289 911 400 800 511 689 400ZM722 322H878V478H722Z" opacity=".42"/>
+    <path d="M566 668V448L584 431 603 450V648M997 649V451L1016 431 1034 449V668M594 692H1006" opacity=".7" stroke-width="1.4"/>
+    <path d="M584 432 517 490 397 491 375 514H270M1016 432 1083 490 1203 491 1225 514H1330M360 543H484L528 503M1240 543H1116L1072 503" opacity=".51" stroke-dasharray="47 5 3 5"/>
+  </g>
+  <path d="M800 144V294M800 512V665M468 400H681M919 400H1132" fill="none" stroke="url(#spire)" opacity=".62" stroke-dasharray="2 7"/>
+  <g fill="#aff7e9"><use href="#diamond" x="800" y="204"/><use href="#diamond" x="800" y="596"/><use href="#diamond" x="604" y="400" transform="rotate(90 604 400)"/><use href="#diamond" x="996" y="400" transform="rotate(90 996 400)"/><circle cx="596" cy="293" r="3"/><circle cx="1040" cy="310" r="3"/><circle cx="750" cy="617" r="3"/></g>
+  <path d="M800 362Q806 394 839 400 806 406 800 438 794 406 761 400 794 394 800 362Z" fill="#e2ffef" fill-opacity=".22" stroke="#c5ffed" stroke-width="1.7"/>
+</svg>

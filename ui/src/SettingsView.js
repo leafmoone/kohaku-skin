@@ -23,25 +23,30 @@ import {
   syncSettingsHostLabels,
   translateSkinText,
 } from "./i18n.js"
+import { IntroWorkshopModal } from "./IntroWorkshopModal.js"
 import {
   BACKGROUND_PRESETS,
   buildApiBase,
+  buildIntroExportZipUrl,
+  buildIntroTemplateZipUrl,
   buildTemplateZipUrl,
   clampNumber,
   detectSkinImportFormat,
   extractErrorMessage,
   isAllowedCustomUrl,
+  normalizeIntroPrefs,
   readFileAsBase64,
 } from "./utils.js"
 
 /**
- * Create the SettingsView Vue component bound to a skin engine instance.
+ * Create the SettingsView Vue component bound to a skin engine and intro playback controller.
  */
-export function createSettingsView(engine) {
+export function createSettingsView(engine, introControl) {
   return {
     name: "KohakuSkinSettingsView",
     components: {
       ActionButton,
+      IntroWorkshopModal,
       SettingsGroup,
       SettingsRow,
     },
@@ -63,13 +68,17 @@ export function createSettingsView(engine) {
       const busy = ref(false)
       const skinFileInput = ref(null)
       const bgFileInput = ref(null)
+      const introZipInput = ref(null)
+      const workshopOpen = ref(false)
       const customUrlDraft = ref("")
 
       const alphaDraft = ref(0.76)
       const blurDraft = ref(14)
       const dimDraft = ref(0.24)
       const readabilityDraft = ref(0.55)
+      const introVolumeDraft = ref(0.85)
       let sliderCommitTimer = null
+      let introVolumeTimer = null
 
       function tr(key, params) {
         return translateSkinText(locale.value, key, params)
@@ -112,6 +121,20 @@ export function createSettingsView(engine) {
           ? ownerState.value.custom_skins_rel_hint
           : "kohaku-skin/skins",
       )
+      const intros = computed(() =>
+        ownerState.value && Array.isArray(ownerState.value.intros) ? ownerState.value.intros : [],
+      )
+      const introPrefs = computed(() =>
+        normalizeIntroPrefs(prefs.value ? prefs.value.intro : null),
+      )
+      const activeIntroPayload = computed(
+        () => (ownerState.value && ownerState.value.active_intro_payload) || null,
+      )
+      const customIntrosDirHint = computed(() =>
+        ownerState.value && typeof ownerState.value.custom_intros_rel_hint === "string"
+          ? ownerState.value.custom_intros_rel_hint
+          : "kohaku-skin/intros",
+      )
       const wallpaperStatus = computed(() => {
         if (uploadedFile.value) {
           return tr("skin.wallpaperUploaded", { name: uploadedFile.value })
@@ -135,11 +158,23 @@ export function createSettingsView(engine) {
         { immediate: true },
       )
 
+      watch(
+        introPrefs,
+        (nextIntro) => {
+          introVolumeDraft.value = clampNumber(nextIntro.volume, 0, 1, 0.85)
+        },
+        { immediate: true },
+      )
+
       onUnmounted(() => {
         stopEngineWatch()
         if (sliderCommitTimer !== null) {
           clearTimeout(sliderCommitTimer)
           sliderCommitTimer = null
+        }
+        if (introVolumeTimer !== null) {
+          clearTimeout(introVolumeTimer)
+          introVolumeTimer = null
         }
       })
 
@@ -389,16 +424,169 @@ export function createSettingsView(engine) {
         }
       }
 
+      function introModeLabel(mode) {
+        if (mode === "director") return tr("skin.introModeDirector", {})
+        if (mode === "video") return tr("skin.introModeVideo", {})
+        return tr("skin.introModeSingle", {})
+      }
+
+      async function updateIntroPref(partial) {
+        try {
+          await runAction("set_intro", partial)
+        } catch (_handled) {
+          // Error already surfaced via notify in runAction.
+        }
+      }
+
+      function onIntroVolumeInput(ev) {
+        const val = clampNumber(ev.target.value, 0, 1, 0.85)
+        introVolumeDraft.value = val
+        if (introVolumeTimer !== null) {
+          clearTimeout(introVolumeTimer)
+        }
+        introVolumeTimer = setTimeout(() => {
+          introVolumeTimer = null
+          runAction("set_intro", { volume: val }).catch(() => {})
+        }, 160)
+      }
+
+      function previewIntroPack(pack) {
+        const target =
+          pack ||
+          activeIntroPayload.value ||
+          intros.value.find((item) => item && item.id === introPrefs.value.active_intro_id) ||
+          intros.value[0] ||
+          null
+        if (!target) {
+          notify(tr("skin.introToastNoActive", {}), "warning")
+          return
+        }
+        if (introControl && typeof introControl.requestReplay === "function") {
+          introControl.requestReplay(target)
+        }
+      }
+
+      async function rescanIntros() {
+        try {
+          const updated = await runAction("rescan_intros", {})
+          const count = updated && Array.isArray(updated.intros) ? updated.intros.length : intros.value.length
+          notify(tr("skin.introToastRescanned", { count }), "success")
+        } catch (_handled) {
+          // Error already surfaced via notify in runAction.
+        }
+      }
+
+      function triggerIntroZipImport() {
+        if (introZipInput.value) {
+          introZipInput.value.value = ""
+          introZipInput.value.click()
+        }
+      }
+
+      async function onIntroZipChange(ev) {
+        const input = ev.target
+        const file = input && input.files && input.files[0] ? input.files[0] : null
+        if (!file) return
+        busy.value = true
+        try {
+          const formData = new FormData()
+          formData.append("file", file)
+          formData.append("activate", "true")
+          let data = null
+          if (kt && kt.api && typeof kt.api.post === "function") {
+            const resp = await kt.api.post("/intros/import-zip", formData)
+            data = resp && resp.data ? resp.data : null
+          } else {
+            const apiBase = buildApiBase(host.value, kt.package)
+            const resp = await fetch(`${apiBase}/intros/import-zip`, {
+              method: "POST",
+              body: formData,
+              credentials: "same-origin",
+            })
+            if (!resp.ok) {
+              throw new Error((await resp.text()) || `HTTP ${resp.status}`)
+            }
+            data = await resp.json()
+          }
+          await runAction("rescan_intros", {})
+          const importedName = (data && data.intro && data.intro.name) || file.name
+          notify(tr("skin.introToastImported", { name: importedName }), "success")
+        } catch (err) {
+          notify(
+            tr("skin.toastActionFailed", { message: extractErrorMessage(err, file.name) }),
+            "error",
+          )
+        } finally {
+          busy.value = false
+        }
+      }
+
+      function exportIntroPack(introId) {
+        const apiBase = buildApiBase(host.value, kt.package)
+        const url = buildIntroExportZipUrl(apiBase, introId)
+        if (!url || typeof document === "undefined") return
+        const link = document.createElement("a")
+        link.href = url
+        link.download = `${introId}.zip`
+        link.rel = "noopener"
+        document.body.appendChild(link)
+        link.click()
+        document.body.removeChild(link)
+      }
+
+      function downloadIntroTemplate() {
+        const apiBase = buildApiBase(host.value, kt.package)
+        const url = buildIntroTemplateZipUrl(apiBase)
+        if (typeof document === "undefined") return
+        const link = document.createElement("a")
+        link.href = url
+        link.download = "kohaku-intro-template.zip"
+        link.rel = "noopener"
+        document.body.appendChild(link)
+        link.click()
+        document.body.removeChild(link)
+      }
+
+      async function deleteCustomIntro(pack) {
+        const displayName = pack.name || pack.id
+        const ok = await confirm(
+          tr("skin.introConfirmDelete", { name: displayName }),
+          tr("skin.introConfirmDeleteTitle", {}),
+          {},
+        )
+        if (!ok) return
+        try {
+          await runAction("delete_custom_intro", { intro_id: pack.id })
+          notify(tr("skin.introToastDeleted", { name: displayName }), "success")
+        } catch (_handled) {
+          // Error already surfaced via notify in runAction.
+        }
+      }
+
+      async function onWorkshopCreated(createdIntro) {
+        try {
+          await runAction("rescan_intros", {})
+        } catch (_handled) {
+          // Error already surfaced via notify in runAction.
+        }
+        if (createdIntro) {
+          previewIntroPack(createdIntro)
+        }
+      }
+
       return {
         owner,
         busy,
         skinFileInput,
         bgFileInput,
+        introZipInput,
+        workshopOpen,
         customUrlDraft,
         alphaDraft,
         blurDraft,
         dimDraft,
         readabilityDraft,
+        introVolumeDraft,
         ownerState,
         skins,
         skinEnabled,
@@ -407,10 +595,15 @@ export function createSettingsView(engine) {
         bgFit,
         hasCustomWallpaper,
         customDirHint,
+        intros,
+        introPrefs,
+        activeIntroPayload,
+        customIntrosDirHint,
         wallpaperStatus,
         tr,
         skinLabel,
         skinDesc,
+        introModeLabel,
         selectDefaultSkin,
         selectSkin,
         rescanSkins,
@@ -429,6 +622,16 @@ export function createSettingsView(engine) {
         onDimInput,
         onReadabilityInput,
         applyPreset,
+        updateIntroPref,
+        onIntroVolumeInput,
+        previewIntroPack,
+        rescanIntros,
+        triggerIntroZipImport,
+        onIntroZipChange,
+        exportIntroPack,
+        downloadIntroTemplate,
+        deleteCustomIntro,
+        onWorkshopCreated,
       }
     },
     template: `
@@ -456,6 +659,14 @@ export function createSettingsView(engine) {
             accept=".png,.jpg,.jpeg,.webp,.gif,.svg"
             data-test="ks-bg-file-input"
             @change="onBgFileChange"
+          />
+          <input
+            ref="introZipInput"
+            class="ks-settings-hidden-input"
+            type="file"
+            accept=".zip"
+            data-testid="ks-intro-zip-input"
+            @change="onIntroZipChange"
           />
 
           <SettingsGroup
@@ -808,6 +1019,247 @@ export function createSettingsView(engine) {
               </div>
             </SettingsRow>
           </SettingsGroup>
+
+          <SettingsGroup
+            :title="tr('skin.groupIntroTitle', {})"
+            :description="tr('skin.groupIntroDesc', {})"
+            data-testid="ks-settings-intro-group"
+          >
+            <template #action>
+              <div class="ks-settings-toolbar">
+                <ActionButton
+                  variant="primary"
+                  size="sm"
+                  :disabled="busy || intros.length === 0"
+                  data-testid="ks-intro-preview-btn"
+                  @click="previewIntroPack(null)"
+                >
+                  {{ tr("skin.introBtnPreview", {}) }}
+                </ActionButton>
+                <ActionButton
+                  variant="secondary"
+                  size="sm"
+                  :disabled="busy"
+                  data-testid="ks-intro-create-btn"
+                  @click="workshopOpen = true"
+                >
+                  {{ tr("skin.introBtnCreate", {}) }}
+                </ActionButton>
+                <ActionButton
+                  variant="secondary"
+                  size="sm"
+                  :disabled="busy"
+                  data-testid="ks-intro-import-btn"
+                  @click="triggerIntroZipImport"
+                >
+                  {{ tr("skin.introBtnImportZip", {}) }}
+                </ActionButton>
+                <ActionButton
+                  variant="ghost"
+                  size="sm"
+                  :disabled="busy"
+                  data-testid="ks-intro-rescan-btn"
+                  @click="rescanIntros"
+                >
+                  {{ tr("skin.introBtnRescan", {}) }}
+                </ActionButton>
+                <ActionButton
+                  variant="ghost"
+                  size="sm"
+                  data-testid="ks-intro-template-btn"
+                  @click="downloadIntroTemplate"
+                >
+                  {{ tr("skin.introBtnTemplateZip", {}) }}
+                </ActionButton>
+              </div>
+            </template>
+
+            <SettingsRow
+              :title="tr('skin.introEnableTitle', {})"
+              :hint="tr('skin.introEnableHint', {})"
+            >
+              <button
+                type="button"
+                role="switch"
+                :aria-checked="String(introPrefs.enabled)"
+                class="ks-intro-switch"
+                :class="{ 'is-on': introPrefs.enabled }"
+                :disabled="busy"
+                data-testid="ks-intro-toggle-enabled"
+                @click="updateIntroPref({ enabled: !introPrefs.enabled })"
+              >
+                <span class="ks-intro-switch-dot" />
+                <span>{{ introPrefs.enabled ? tr("skin.introToggleOn", {}) : tr("skin.introToggleOff", {}) }}</span>
+              </button>
+            </SettingsRow>
+
+            <SettingsRow
+              :title="tr('skin.introStartupTitle', {})"
+              :hint="tr('skin.introStartupHint', {})"
+            >
+              <button
+                type="button"
+                role="switch"
+                :aria-checked="String(introPrefs.play_on_startup)"
+                class="ks-intro-switch"
+                :class="{ 'is-on': introPrefs.play_on_startup }"
+                :disabled="busy"
+                data-testid="ks-intro-toggle-startup"
+                @click="updateIntroPref({ play_on_startup: !introPrefs.play_on_startup })"
+              >
+                <span class="ks-intro-switch-dot" />
+                <span>{{ introPrefs.play_on_startup ? tr("skin.introToggleOn", {}) : tr("skin.introToggleOff", {}) }}</span>
+              </button>
+            </SettingsRow>
+
+            <SettingsRow
+              :title="tr('skin.introKeepLiveTitle', {})"
+              :hint="tr('skin.introKeepLiveHint', {})"
+            >
+              <button
+                type="button"
+                role="switch"
+                :aria-checked="String(introPrefs.keep_live_wallpaper)"
+                class="ks-intro-switch"
+                :class="{ 'is-on': introPrefs.keep_live_wallpaper }"
+                :disabled="busy"
+                data-testid="ks-intro-toggle-live"
+                @click="updateIntroPref({ keep_live_wallpaper: !introPrefs.keep_live_wallpaper })"
+              >
+                <span class="ks-intro-switch-dot" />
+                <span>{{ introPrefs.keep_live_wallpaper ? tr("skin.introToggleOn", {}) : tr("skin.introToggleOff", {}) }}</span>
+              </button>
+            </SettingsRow>
+
+            <SettingsRow
+              :title="tr('skin.introMuteTitle', {})"
+              :hint="tr('skin.introMuteHint', {})"
+            >
+              <button
+                type="button"
+                role="switch"
+                :aria-checked="String(introPrefs.muted)"
+                class="ks-intro-switch"
+                :class="{ 'is-on': introPrefs.muted }"
+                :disabled="busy"
+                data-testid="ks-intro-toggle-muted"
+                @click="updateIntroPref({ muted: !introPrefs.muted })"
+              >
+                <span class="ks-intro-switch-dot" />
+                <span>{{ introPrefs.muted ? tr("skin.introToggleOn", {}) : tr("skin.introToggleOff", {}) }}</span>
+              </button>
+            </SettingsRow>
+
+            <SettingsRow
+              :title="tr('skin.introVolumeTitle', {})"
+              :hint="tr('skin.introVolumeHint', {})"
+            >
+              <div class="ks-settings-slider-wrap">
+                <input
+                  class="ks-settings-slider"
+                  type="range"
+                  min="0.00"
+                  max="1.00"
+                  step="0.05"
+                  :value="introVolumeDraft"
+                  data-testid="ks-intro-slider-volume"
+                  @input="onIntroVolumeInput"
+                />
+                <span class="ks-settings-slider-val">{{ Math.round(introVolumeDraft * 100) }}%</span>
+              </div>
+            </SettingsRow>
+
+            <div v-if="intros.length === 0" class="ks-settings-banner" data-testid="ks-intro-empty">
+              {{ tr("skin.introEmpty", {}) }}
+            </div>
+            <div v-else class="ks-settings-skin-grid" data-testid="ks-intro-grid">
+              <div
+                v-for="pack in intros"
+                :key="pack.id"
+                class="ks-settings-skin-card"
+                :class="{ 'ks-settings-skin-card--active': introPrefs.enabled && introPrefs.active_intro_id === pack.id }"
+                :data-testid="'ks-intro-card-' + pack.id"
+              >
+                <div class="ks-settings-skin-head">
+                  <div>
+                    <div class="ks-settings-skin-title">{{ pack.name || pack.id }}</div>
+                    <div class="ks-settings-skin-meta">
+                      {{ pack.author || tr("skin.metaCommunity", {}) }} / v{{ pack.version || "1.0.0" }} · {{ pack.duration }}s
+                    </div>
+                  </div>
+                  <div class="ks-settings-badges">
+                    <span class="ks-settings-badge">{{ introModeLabel(pack.mode) }}</span>
+                    <span class="ks-settings-badge">{{ tr("skin.fxPreset." + (pack.fx_preset || "starlight-cyan"), {}) }}</span>
+                    <span
+                      class="ks-settings-badge"
+                      :class="{ 'ks-settings-badge--custom': pack.source === 'custom' }"
+                    >
+                      {{ pack.source === "custom" ? tr("skin.badgeCustom", {}) : tr("skin.badgeBuiltin", {}) }}
+                    </span>
+                    <span
+                      v-if="introPrefs.enabled && introPrefs.active_intro_id === pack.id"
+                      class="ks-settings-badge ks-settings-badge--active"
+                    >
+                      {{ tr("skin.badgeActive", {}) }}
+                    </span>
+                  </div>
+                </div>
+
+                <p class="ks-settings-skin-desc">{{ pack.description || pack.id }}</p>
+
+                <div class="ks-settings-card-actions">
+                  <div class="ks-settings-toolbar">
+                    <ActionButton
+                      :variant="introPrefs.enabled && introPrefs.active_intro_id === pack.id ? 'secondary' : 'primary'"
+                      size="sm"
+                      :disabled="busy || (introPrefs.enabled && introPrefs.active_intro_id === pack.id)"
+                      :data-testid="'ks-intro-activate-' + pack.id"
+                      @click="updateIntroPref({ enabled: true, active_intro_id: pack.id })"
+                    >
+                      {{ introPrefs.enabled && introPrefs.active_intro_id === pack.id ? tr("skin.btnActive", {}) : tr("skin.btnActivate", {}) }}
+                    </ActionButton>
+                    <ActionButton
+                      variant="secondary"
+                      size="sm"
+                      :disabled="busy"
+                      :data-testid="'ks-intro-play-' + pack.id"
+                      @click="previewIntroPack(pack)"
+                    >
+                      {{ tr("skin.floatIntroPreview", {}) }}
+                    </ActionButton>
+                    <ActionButton
+                      variant="ghost"
+                      size="sm"
+                      :data-testid="'ks-intro-export-' + pack.id"
+                      @click="exportIntroPack(pack.id)"
+                    >
+                      {{ tr("skin.introBtnExportZip", {}) }}
+                    </ActionButton>
+                  </div>
+                  <ActionButton
+                    v-if="pack.source === 'custom'"
+                    variant="danger"
+                    size="sm"
+                    :disabled="busy"
+                    :data-testid="'ks-intro-delete-' + pack.id"
+                    @click="deleteCustomIntro(pack)"
+                  >
+                    {{ tr("skin.btnDelete", {}) }}
+                  </ActionButton>
+                </div>
+              </div>
+            </div>
+
+            <div class="ks-settings-dir-hint">
+              {{ tr("skin.introDirHint", { path: customIntrosDirHint }) }}
+            </div>
+          </SettingsGroup>
+
+          <IntroWorkshopModal
+            :open="workshopOpen"
+            @close="workshopOpen = false"
+            @created="onWorkshopCreated"
+          />
         </template>
       </div>
     `,
