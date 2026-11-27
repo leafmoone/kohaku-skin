@@ -9,24 +9,17 @@ import lzma
 import re
 import shutil
 import stat
+import struct
 import zlib
 from dataclasses import dataclass
 from functools import lru_cache
 from pathlib import Path
-from tempfile import NamedTemporaryFile, TemporaryDirectory
-from typing import BinaryIO, Literal
+from tempfile import NamedTemporaryFile, SpooledTemporaryFile, TemporaryDirectory
+from typing import IO, Literal, Protocol
 from unicodedata import normalize
 from uuid import uuid4
 from xml.etree import ElementTree
-from zipfile import (
-    _ECD_ENTRIES_TOTAL,
-    _ECD_SIZE,
-    ZIP_DEFLATED,
-    ZIP_STORED,
-    BadZipFile,
-    ZipFile,
-    _EndRecData,
-)
+from zipfile import ZIP_DEFLATED, ZIP_STORED, BadZipFile, ZipFile
 
 from kohakuterrarium.modules.ui_owner import OwnerArgumentError, OwnerForbiddenError
 from kohakuterrarium.utils.config_dir import config_dir
@@ -74,6 +67,10 @@ AUDIO_TYPES = {
 VIDEO_TYPES = {".mp4": "video/mp4", ".webm": "video/webm"}
 INTRO_MEDIA_TYPES = IMAGE_TYPES | AUDIO_TYPES | VIDEO_TYPES
 _CHUNK = 1024 * 1024
+_EOCD = struct.Struct("<4s4H2IH")
+_ZIP64_LOCATOR = struct.Struct("<4sIQI")
+_ZIP64_EOCD = struct.Struct("<4sQ2H2I4Q")
+_EOCD_WINDOW = _EOCD.size + 0xFFFF
 _SKIN_HEADERS = re.compile(r"(?m)^\s*\*?\s*@(id|name|author|description):[ \t]*([^\r\n]+)")
 _CSS_COMMENT = re.compile(r"/\*(.*?)\*/", re.DOTALL)
 _LOG = logging.getLogger(__name__)
@@ -489,10 +486,27 @@ class IntroPack:
     manifest: IntroManifest
 
 
+class ByteReader(Protocol):
+    def read(self, size: int, /) -> bytes: ...
+
+
+class _SeekableByteStream(ByteReader, Protocol):
+    def seek(self, offset: int, whence: int, /) -> int: ...
+    def tell(self) -> int: ...
+
+
+class _ZipOutput(Protocol):
+    def write(self, data: bytes, /) -> int: ...
+    def seek(self, offset: int, /) -> int: ...
+    def tell(self) -> int: ...
+    def flush(self) -> None: ...
+    def close(self) -> None: ...
+
+
 @dataclass(frozen=True, slots=True)
 class IntroUpload:
     name: str
-    stream: BinaryIO
+    stream: ByteReader
 
 
 def _plain(path: Path) -> bool:
@@ -676,7 +690,7 @@ def _commit_intro(scope: StorageScope, destination: Path, staging: Path) -> Intr
     return IntroPack(target, pack.manifest)
 
 
-def _copy_intro(source: BinaryIO, target: Path, remaining: int) -> int:
+def _copy_intro(source: ByteReader, target: Path, remaining: int) -> int:
     target.parent.mkdir(parents=True, exist_ok=True)
     size = 0
     with target.open("xb") as output:
@@ -688,18 +702,54 @@ def _copy_intro(source: BinaryIO, target: Path, remaining: int) -> int:
     return size
 
 
-def _extract_intro(content: BinaryIO, stage: Path) -> None:
+def _zip_directory_counts(content: _SeekableByteStream, size: int) -> tuple[int, int]:
+    # Match ZipFile's footer selection so the limits apply to the directory it will read.
+    tail_offset = max(size - _EOCD_WINDOW, 0)
+    content.seek(tail_offset, io.SEEK_SET)
+    tail = content.read(size - tail_offset)
+    footer = len(tail) - _EOCD.size
+    if footer < 0 or not (tail[footer : footer + 4] == b"PK\x05\x06" and tail[-2:] == b"\x00\x00"):
+        footer = tail.rfind(b"PK\x05\x06")
+    if footer < 0 or len(tail) - footer < _EOCD.size:
+        raise OwnerArgumentError("Intro upload must be a valid ZIP archive")
+    _, _, _, _, entries, directory_size, _, _ = _EOCD.unpack_from(tail, footer)
+
+    locator_offset = tail_offset + footer - _ZIP64_LOCATOR.size
+    if locator_offset < 0:
+        return entries, directory_size
+    content.seek(locator_offset, io.SEEK_SET)
+    signature, disk, declared_offset, disks = _ZIP64_LOCATOR.unpack(content.read(_ZIP64_LOCATOR.size))
+    if signature != b"PK\x06\x07":
+        return entries, directory_size
+    fixed_offset = locator_offset - _ZIP64_EOCD.size
+    if disk != 0 or disks > 1 or not 0 <= declared_offset <= fixed_offset:
+        raise BadZipFile("Invalid ZIP64 central directory locator")
+
+    # A prepended executable can shift ZIP64 offsets. Bound both possible headers.
+    candidates: dict[int, tuple[int, int]] = {}
+    for offset in {declared_offset, fixed_offset}:
+        content.seek(offset, io.SEEK_SET)
+        signature, _, _, _, _, _, _, count, byte_count, _ = _ZIP64_EOCD.unpack(content.read(_ZIP64_EOCD.size))
+        if signature == b"PK\x06\x06":
+            candidates[offset] = (count, byte_count)
+    if not candidates:
+        raise BadZipFile("Missing ZIP64 end of central directory")
+    if fixed_offset not in candidates:
+        # Older ZipFile versions fall back to the classic record if the fixed header is absent.
+        candidates[tail_offset + footer] = (entries, directory_size)
+    directories = candidates.values()
+    return max(count for count, _ in directories), max(length for _, length in directories)
+
+
+def _extract_intro(content: IO[bytes] | SpooledTemporaryFile[bytes], stage: Path) -> None:
     content.seek(0, io.SEEK_END)
     size = content.tell()
-    content.seek(0)
     if size > MAX_INTRO_BYTES:
         raise OwnerArgumentError("Intro ZIP exceeds the 120 MB limit")
     try:
         # Bound central-directory allocation before ZipFile constructs its entry objects.
-        end = _EndRecData(content)
-        if end is None:
-            raise OwnerArgumentError("Intro upload must be a valid ZIP archive")
-        if end[_ECD_ENTRIES_TOTAL] > MAX_FILES * 4 or end[_ECD_SIZE] > _CHUNK:
+        entries_total, directory_size = _zip_directory_counts(content, size)
+        if entries_total > MAX_FILES * 4 or directory_size > _CHUNK:
             raise OwnerArgumentError("Intro ZIP central directory exceeds the pack limits")
         with ZipFile(content) as archive:
             entries = archive.infolist()
@@ -747,6 +797,7 @@ def _extract_intro(content: BinaryIO, stage: Path) -> None:
                     remaining -= _copy_intro(stream, stage / name.removeprefix(prefix), remaining)
     except (
         BadZipFile,
+        struct.error,
         EOFError,
         RuntimeError,
         NotImplementedError,
@@ -758,7 +809,9 @@ def _extract_intro(content: BinaryIO, stage: Path) -> None:
         raise OwnerArgumentError("Could not extract a valid, unencrypted intro ZIP") from exc
 
 
-def install_intro_zip(scope: StorageScope, upload_name: str, content: BinaryIO) -> IntroPack:
+def install_intro_zip(
+    scope: StorageScope, upload_name: str, content: IO[bytes] | SpooledTemporaryFile[bytes]
+) -> IntroPack:
     if Path(upload_name).suffix.lower() != ".zip":
         raise OwnerArgumentError("Intro upload must end in .zip")
     destination = _intro_destination(scope)
@@ -823,7 +876,7 @@ def delete_intro(scope: StorageScope, intro_id: str) -> None:
     shutil.rmtree(pack.directory)
 
 
-def _write_intro_zip(pack: IntroPack, output: BinaryIO, template: bool) -> None:
+def _write_intro_zip(pack: IntroPack, output: _ZipOutput, template: bool) -> None:
     manifest = pack.manifest.to_state()
     if template:
         manifest.update(id="my-boot-intro", name="My Boot Intro", source="custom")
@@ -836,7 +889,7 @@ def _write_intro_zip(pack: IntroPack, output: BinaryIO, template: bool) -> None:
     output.seek(0)
 
 
-def export_intro_zip(pack: IntroPack, output: BinaryIO) -> None:
+def export_intro_zip(pack: IntroPack, output: _ZipOutput) -> None:
     _write_intro_zip(pack, output, False)
 
 

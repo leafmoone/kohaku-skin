@@ -2,11 +2,11 @@
 
 import json
 import mimetypes
-from collections.abc import Awaitable, Callable, Iterator
+from collections.abc import Callable, Coroutine, Iterator
 from dataclasses import replace
 from pathlib import Path
 from tempfile import SpooledTemporaryFile
-from typing import Annotated, BinaryIO, Protocol
+from typing import Annotated, Protocol
 
 from fastapi import APIRouter, Depends, File, Form, HTTPException, Request, UploadFile
 from fastapi.responses import FileResponse, Response, StreamingResponse
@@ -24,6 +24,7 @@ from .storage import (
     IMAGE_TYPES,
     INTRO_MEDIA_TYPES,
     MAX_INTRO_BYTES,
+    ByteReader,
     IntroPack,
     IntroUpload,
     StorageScope,
@@ -48,7 +49,7 @@ _BODY_LIMIT_DETAIL = "Intro multipart request exceeds the upload limit"
 
 
 class _IntroUploadRoute(APIRoute):
-    def get_route_handler(self) -> Callable[[Request], Awaitable[Response]]:
+    def get_route_handler(self) -> Callable[[Request], Coroutine[None, None, Response]]:
         handle = super().get_route_handler()
         if self.methods != {"POST"}:
             return handle
@@ -199,7 +200,7 @@ def _zip_headers(name: str) -> dict[str, str]:
     return {"Content-Disposition": f'attachment; filename="{name}"', "Cache-Control": "private, no-store"}
 
 
-def _response_chunks(stream: BinaryIO) -> Iterator[bytes]:
+def _response_chunks(stream: ByteReader) -> Iterator[bytes]:
     while chunk := stream.read(1024 * 1024):
         yield chunk
 

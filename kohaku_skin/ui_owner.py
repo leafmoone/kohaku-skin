@@ -3,6 +3,7 @@
 import logging
 from dataclasses import replace
 from threading import RLock
+from typing import Literal
 
 from kohakuterrarium.api.ext import UICallContext
 from kohakuterrarium.modules.ui_owner import (
@@ -47,6 +48,7 @@ from .storage import (
 )
 
 _LOG = logging.getLogger(__name__)
+_SKIN_UPLOAD_FORMATS: tuple[Literal["zip", "css"], ...] = ("zip", "css")
 STATE_LOCK = RLock()
 
 
@@ -127,7 +129,7 @@ class PackageUI(UIOwnerMixin):
             require_fields(args, ())
         elif action == "install_custom_skin":
             require_fields(args, ("format", "filename", "content_base64", "activate"))
-            upload_format = require_choice(args.get("format"), ("zip", "css"), "format")
+            upload_format: Literal["zip", "css"] = require_choice(args.get("format"), _SKIN_UPLOAD_FORMATS, "format")
             upload_name = filename(args.get("filename"), "filename")
             activate = require_bool(args.get("activate"), "activate")
             pack = install_skin(scope, upload_format, upload_name, decode_upload(args.get("content_base64")))

@@ -55,6 +55,7 @@ class BackgroundState(TypedDict):
 
 
 IntroMode = Literal["single", "director", "video"]
+_INTRO_MODES: tuple[IntroMode, ...] = ("single", "director", "video")
 FxPreset = Literal["starlight-cyan", "amber-firefly", "sakura-petals", "cyber-neon", "minimal-clean"]
 RevealMode = Literal["radial", "fade", "wipe"]
 
@@ -535,7 +536,7 @@ def parse_intro_manifest(raw: object, source: SkinSource) -> IntroManifest:
     name = require_string(data.get("name"), "name").strip()
     if not name:
         raise OwnerArgumentError("name must not be empty")
-    mode = require_choice(data.get("mode"), ("single", "director", "video"), "mode")
+    mode: IntroMode = require_choice(data.get("mode"), _INTRO_MODES, "mode")
     duration = _decimal(data.get("duration", 10.5), 2, 120, "duration")
     audio = require_string(data.get("audio", ""), "audio")
     if audio and audio != "synth:starlight":
