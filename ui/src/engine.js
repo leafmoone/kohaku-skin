@@ -98,8 +98,40 @@ export function createSkinEngine(pkgName) {
   let liveFxController = null
   let liveVideoUrl = ""
   let liveFxPreset = ""
+  let liveVideoVisibilityHandler = null
+  let liveVideoVisibilityDoc = null
+  let liveParallaxHandler = null
+  let liveParallaxWin = null
+
+  function detachVideoVisibilityListener() {
+    if (liveVideoVisibilityHandler && liveVideoVisibilityDoc && typeof liveVideoVisibilityDoc.removeEventListener === "function") {
+      liveVideoVisibilityDoc.removeEventListener("visibilitychange", liveVideoVisibilityHandler)
+    }
+    liveVideoVisibilityHandler = null
+    liveVideoVisibilityDoc = null
+  }
+
+  function detachImageParallaxListener(doc) {
+    if (liveParallaxHandler && liveParallaxWin && typeof liveParallaxWin.removeEventListener === "function") {
+      liveParallaxWin.removeEventListener("pointermove", liveParallaxHandler)
+    }
+    liveParallaxHandler = null
+    liveParallaxWin = null
+    if (doc) {
+      const bgRoot = doc.getElementById(BG_ROOT_ID)
+      if (bgRoot) {
+        bgRoot.removeAttribute("data-ks-live-image")
+        if (bgRoot.style && typeof bgRoot.style.removeProperty === "function") {
+          bgRoot.style.removeProperty("--ks-parallax-x")
+          bgRoot.style.removeProperty("--ks-parallax-y")
+        }
+      }
+    }
+  }
 
   function teardownLiveMedia(doc) {
+    detachVideoVisibilityListener()
+    detachImageParallaxListener(doc)
     if (liveFxController) {
       liveFxController.dispose()
       liveFxController = null
@@ -133,8 +165,10 @@ export function createSkinEngine(pkgName) {
     const bgRoot = ensureBgRoot(doc)
     const dimmerEl =
       typeof bgRoot.querySelector === "function" ? bgRoot.querySelector(".ks-bg-dimmer") : null
+    const winRef = typeof window !== "undefined" ? window : null
 
     if (liveSource.kind === "video") {
+      detachImageParallaxListener(doc)
       let videoEl =
         typeof bgRoot.querySelector === "function" ? bgRoot.querySelector(".ks-bg-video") : null
       if (!videoEl) {
@@ -152,6 +186,11 @@ export function createSkinEngine(pkgName) {
           bgRoot.appendChild(videoEl)
         }
       }
+      if (liveSource.posterUrl) {
+        videoEl.poster = liveSource.posterUrl
+      } else if (typeof videoEl.removeAttribute === "function") {
+        videoEl.removeAttribute("poster")
+      }
       if (liveVideoUrl !== liveSource.url) {
         liveVideoUrl = liveSource.url
         videoEl.src = liveSource.url
@@ -160,7 +199,28 @@ export function createSkinEngine(pkgName) {
           if (p && typeof p.catch === "function") p.catch(() => {})
         }
       }
+      if (!liveVideoVisibilityHandler && typeof doc.addEventListener === "function") {
+        liveVideoVisibilityDoc = doc
+        liveVideoVisibilityHandler = () => {
+          const curRoot = doc.getElementById(BG_ROOT_ID)
+          const curVideo =
+            curRoot && typeof curRoot.querySelector === "function"
+              ? curRoot.querySelector(".ks-bg-video")
+              : null
+          if (!curVideo) return
+          if (doc.hidden === true) {
+            if (typeof curVideo.pause === "function") curVideo.pause()
+          } else if (typeof curVideo.play === "function") {
+            const playPromise = curVideo.play()
+            if (playPromise && typeof playPromise.catch === "function") {
+              playPromise.catch(() => {})
+            }
+          }
+        }
+        doc.addEventListener("visibilitychange", liveVideoVisibilityHandler)
+      }
     } else {
+      detachVideoVisibilityListener()
       const existingVideo =
         typeof bgRoot.querySelector === "function" ? bgRoot.querySelector(".ks-bg-video") : null
       if (existingVideo) {
@@ -175,6 +235,24 @@ export function createSkinEngine(pkgName) {
         }
       }
       liveVideoUrl = ""
+      bgRoot.setAttribute("data-ks-live-image", "true")
+      if (!liveParallaxHandler && winRef && typeof winRef.addEventListener === "function") {
+        liveParallaxWin = winRef
+        liveParallaxHandler = (ev) => {
+          if (!ev || doc.hidden === true) return
+          const nx = clampNumber((ev.clientX / Math.max(1, winRef.innerWidth || 1280) - 0.5) * 2, -1, 1, 0)
+          const ny = clampNumber((ev.clientY / Math.max(1, winRef.innerHeight || 720) - 0.5) * 2, -1, 1, 0)
+          const curRoot = doc.getElementById(BG_ROOT_ID)
+          if (curRoot && curRoot.style && typeof curRoot.style.setProperty === "function") {
+            curRoot.style.setProperty("--ks-parallax-x", `${(-nx * 10).toFixed(1)}px`)
+            curRoot.style.setProperty("--ks-parallax-y", `${(-ny * 7).toFixed(1)}px`)
+          }
+          if (liveFxController) {
+            liveFxController.setParallax(nx, ny)
+          }
+        }
+        winRef.addEventListener("pointermove", liveParallaxHandler, { passive: true })
+      }
     }
 
     if (liveSource.fxPreset === "minimal-clean") {
@@ -204,19 +282,30 @@ export function createSkinEngine(pkgName) {
       }
     }
 
+    const enableAmbientFlares = liveSource.kind === "image"
     if (!liveFxController) {
       liveFxPreset = liveSource.fxPreset
       liveFxController = createFxCanvasController(canvasEl, {
         preset: liveSource.fxPreset,
         mode: "ambient",
         bursts: [],
+        showAmbientFlares: enableAmbientFlares,
+        focalPoint: liveSource.focalPoint,
+        secondaryPoint: liveSource.secondaryPoint,
         doc,
-        win: typeof window !== "undefined" ? window : null,
+        win: winRef,
       })
       liveFxController.start()
-    } else if (liveFxPreset !== liveSource.fxPreset) {
-      liveFxPreset = liveSource.fxPreset
-      liveFxController.setPreset(liveSource.fxPreset)
+    } else {
+      if (liveFxPreset !== liveSource.fxPreset) {
+        liveFxPreset = liveSource.fxPreset
+        liveFxController.setPreset(liveSource.fxPreset)
+      }
+      liveFxController.setAmbientFlares(
+        enableAmbientFlares,
+        liveSource.focalPoint,
+        liveSource.secondaryPoint,
+      )
     }
   }
 
@@ -316,7 +405,11 @@ export function createSkinEngine(pkgName) {
 
       rootEl.setAttribute("data-ks-bg-active", "true")
       if (liveSource && liveSource.kind === "video") {
-        setTrackedProperty(rootEl, "--ks-bg-image", "none")
+        setTrackedProperty(
+          rootEl,
+          "--ks-bg-image",
+          liveSource.posterUrl ? `url("${escapeCssUrl(liveSource.posterUrl)}")` : "none",
+        )
       } else {
         const imgUrl = liveSource ? liveSource.url : staticBgUrl
         setTrackedProperty(rootEl, "--ks-bg-image", `url("${escapeCssUrl(imgUrl)}")`)

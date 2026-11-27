@@ -307,6 +307,23 @@ export function findActiveSubtitle(subtitles, t) {
   return null
 }
 
+function resolveIntroPosterUrl(payload, apiBase) {
+  if (!payload || typeof payload !== "object" || typeof payload.id !== "string") return ""
+  if (Array.isArray(payload.layers) && payload.layers.length > 0) {
+    for (let i = payload.layers.length - 1; i >= 0; i -= 1) {
+      const layer = payload.layers[i]
+      if (layer && typeof layer.src === "string" && layer.src.trim()) {
+        const url = buildIntroAssetUrl(apiBase, payload.id, layer.src)
+        if (url) return url
+      }
+    }
+  }
+  if (typeof payload.auto_stages_image === "string" && payload.auto_stages_image.trim()) {
+    return buildIntroAssetUrl(apiBase, payload.id, payload.auto_stages_image)
+  }
+  return ""
+}
+
 /**
  * Resolve the live wallpaper descriptor from ownerState when intro live wallpaper is active.
  * Returns null if intro or keep_live_wallpaper is disabled, falling back to static wallpaper.
@@ -323,14 +340,24 @@ export function resolveLiveWallpaperSource(ownerState, apiBase) {
   }
   const fxPreset = FX_PRESETS.includes(payload.fx_preset) ? payload.fx_preset : "starlight-cyan"
   const focalPoint = normalizePointPair(payload.focal_point, 0.5, 0.45)
+  const secondaryPoint = normalizePointPair(
+    payload.secondary_point,
+    clampNumber(1 - focalPoint[0], 0, 1, 0.5),
+    focalPoint[1],
+  )
+  const posterUrl = resolveIntroPosterUrl(payload, apiBase)
 
   if (typeof payload.loop_video === "string" && payload.loop_video.trim()) {
     const url = buildIntroAssetUrl(apiBase, payload.id, payload.loop_video)
-    if (url) return { kind: "video", url, fxPreset, focalPoint, introId: payload.id }
+    if (url) {
+      return { kind: "video", url, posterUrl, fxPreset, focalPoint, secondaryPoint, introId: payload.id }
+    }
   }
   if (payload.mode === "video" && typeof payload.video === "string" && payload.video.trim()) {
     const url = buildIntroAssetUrl(apiBase, payload.id, payload.video)
-    if (url) return { kind: "video", url, fxPreset, focalPoint, introId: payload.id }
+    if (url) {
+      return { kind: "video", url, posterUrl, fxPreset, focalPoint, secondaryPoint, introId: payload.id }
+    }
   }
   if (
     payload.mode === "single" &&
@@ -338,15 +365,19 @@ export function resolveLiveWallpaperSource(ownerState, apiBase) {
     payload.auto_stages_image.trim()
   ) {
     const url = buildIntroAssetUrl(apiBase, payload.id, payload.auto_stages_image)
-    if (url) return { kind: "image", url, fxPreset, focalPoint, introId: payload.id }
+    if (url) {
+      return { kind: "image", url, posterUrl: url, fxPreset, focalPoint, secondaryPoint, introId: payload.id }
+    }
   }
-  if (payload.mode === "director" && Array.isArray(payload.layers) && payload.layers.length > 0) {
-    for (let i = payload.layers.length - 1; i >= 0; i -= 1) {
-      const layer = payload.layers[i]
-      if (layer && typeof layer.src === "string" && layer.src.trim()) {
-        const url = buildIntroAssetUrl(apiBase, payload.id, layer.src)
-        if (url) return { kind: "image", url, fxPreset, focalPoint, introId: payload.id }
-      }
+  if (payload.mode === "director" && posterUrl) {
+    return {
+      kind: "image",
+      url: posterUrl,
+      posterUrl,
+      fxPreset,
+      focalPoint,
+      secondaryPoint,
+      introId: payload.id,
     }
   }
   return null

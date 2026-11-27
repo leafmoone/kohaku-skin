@@ -1090,6 +1090,36 @@ html[data-ks-bg-active="true"] .ks-dock-popover {
   pointer-events: none;
 }
 
+@keyframes ks-live-image-breathe {
+  0% {
+    transform: scale(1.02) translate3d(var(--ks-parallax-x, 0px), var(--ks-parallax-y, 0px), 0);
+  }
+  100% {
+    transform: scale(1.065)
+      translate3d(
+        calc(-1.2% + var(--ks-parallax-x, 0px)),
+        calc(-0.8% + var(--ks-parallax-y, 0px)),
+        0
+      );
+  }
+}
+
+#kohaku-skin-bg-root[data-ks-live-image="true"] .ks-bg-image {
+  inset: -2%;
+  width: 104%;
+  height: 104%;
+  will-change: transform;
+  animation: ks-live-image-breathe 14s ease-in-out infinite alternate;
+  transition: transform 0.25s ease-out;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  #kohaku-skin-bg-root[data-ks-live-image="true"] .ks-bg-image {
+    animation: none;
+    transform: none;
+  }
+}
+
 #kohaku-skin-bg-root .ks-bg-fx-canvas {
   position: absolute;
   inset: 0;

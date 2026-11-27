@@ -7,14 +7,14 @@
  * completely when document.hidden is true for 0% background CPU usage.
  */
 
-import { clampNumber, computeBurstState } from "./utils.js"
+import { clampNumber, computeBurstState, normalizePointPair } from "./utils.js"
 
 const AMBIENT_FRAME_INTERVAL_MS = 37
 
 const PRESET_CONFIG = Object.freeze({
   "starlight-cyan": Object.freeze({
     introCount: 68,
-    ambientCount: 26,
+    ambientCount: 46,
     colors: ["#e0f7ff", "#7dd3fc", "#a5f3fc", "#ffffff"],
     burstCore: "#ffffff",
     burstMid: "rgba(125, 211, 252, 0.72)",
@@ -25,7 +25,7 @@ const PRESET_CONFIG = Object.freeze({
   }),
   "amber-firefly": Object.freeze({
     introCount: 54,
-    ambientCount: 22,
+    ambientCount: 42,
     colors: ["#fffbeb", "#fde68a", "#fbbf24", "#f59e0b"],
     burstCore: "#fffbeb",
     burstMid: "rgba(251, 191, 36, 0.74)",
@@ -36,7 +36,7 @@ const PRESET_CONFIG = Object.freeze({
   }),
   "sakura-petals": Object.freeze({
     introCount: 46,
-    ambientCount: 18,
+    ambientCount: 40,
     colors: ["#fff1f2", "#fbcfe8", "#f9a8d4", "#f472b6"],
     burstCore: "#fff5f7",
     burstMid: "rgba(249, 168, 212, 0.68)",
@@ -47,7 +47,7 @@ const PRESET_CONFIG = Object.freeze({
   }),
   "cyber-neon": Object.freeze({
     introCount: 58,
-    ambientCount: 22,
+    ambientCount: 44,
     colors: ["#22d3ee", "#e879f9", "#a855f7", "#e0f2fe"],
     burstCore: "#ffffff",
     burstMid: "rgba(232, 121, 249, 0.72)",
@@ -85,25 +85,25 @@ function buildParticles(presetName, mode) {
     const r4 = seededRandom(i * 11.1 + 6.3)
     const r5 = seededRandom(i * 13.7 + 8.9)
     const color = cfg.colors[i % cfg.colors.length] || "#ffffff"
-    const speedBase = mode === "ambient" ? 0.008 : 0.018
+    const speedBase = mode === "ambient" ? 0.024 : 0.022
     let vx = (r3 - 0.5) * speedBase
-    let vy = -(0.006 + r4 * speedBase)
+    let vy = -(0.014 + r4 * (mode === "ambient" ? 0.018 : 0.022))
     if (presetName === "sakura-petals") {
-      vx = 0.014 + r3 * 0.022
-      vy = 0.018 + r4 * 0.028
+      vx = 0.018 + r3 * 0.024
+      vy = 0.02 + r4 * 0.028
     } else if (presetName === "cyber-neon") {
-      vx = (r3 > 0.5 ? 1 : -1) * (0.015 + r4 * 0.025)
-      vy = (r5 - 0.5) * 0.01
+      vx = (r3 > 0.5 ? 1 : -1) * (0.018 + r4 * 0.026)
+      vy = (r5 - 0.5) * 0.014
     }
     list.push({
       x: r1,
       y: r2,
       vx,
       vy,
-      size: presetName === "sakura-petals" ? 4.5 + r3 * 5.5 : 1.4 + r3 * 3.2,
+      size: presetName === "sakura-petals" ? 5.2 + r3 * 5.2 : 2.0 + r3 * 3.2,
       phase: r4 * Math.PI * 2,
-      twinkle: 1.2 + r5 * 2.8,
-      depth: 0.4 + r4 * 0.6,
+      twinkle: 1.4 + r5 * 2.8,
+      depth: 0.5 + r4 * 0.5,
       rot: r1 * Math.PI * 2,
       vrot: (r2 - 0.5) * 1.4,
       color,
@@ -166,6 +166,49 @@ function drawStarBurst(ctx, width, height, burstState, cfg) {
   ctx.restore()
 }
 
+function drawAmbientFocalFlare(ctx, width, height, point, nowSec, scaleFactor, phaseOffset, cfg, parallaxX, parallaxY) {
+  if (!Array.isArray(point) || point.length < 2) return
+  const pulse = 0.5 + 0.5 * Math.sin(nowSec * 1.4 + phaseOffset)
+  const alpha = (0.18 + 0.24 * pulse) * scaleFactor
+  const cx = point[0] * width + parallaxX * 14
+  const cy = point[1] * height + parallaxY * 10
+  const baseRadius = Math.min(width, height) * (0.14 + 0.03 * pulse) * scaleFactor
+  if (baseRadius <= 2 || alpha <= 0.01) return
+
+  ctx.save()
+  ctx.globalCompositeOperation = "lighter"
+  ctx.globalAlpha = clampNumber(alpha, 0, 0.85, 0.24)
+
+  const halo = ctx.createRadialGradient(cx, cy, 0, cx, cy, baseRadius)
+  halo.addColorStop(0, cfg.burstCore)
+  halo.addColorStop(0.32, cfg.burstMid)
+  halo.addColorStop(1, cfg.burstOuter)
+  ctx.fillStyle = halo
+  ctx.beginPath()
+  ctx.arc(cx, cy, baseRadius, 0, Math.PI * 2)
+  ctx.fill()
+
+  const spikeLen = baseRadius * (1.28 + 0.22 * pulse)
+  const spikeHalfW = Math.max(1.8, baseRadius * 0.042)
+  const rotation = nowSec * 0.14 + phaseOffset
+  ctx.fillStyle = cfg.burstCore
+  for (let i = 0; i < 4; i += 1) {
+    const angle = rotation + (Math.PI * i) / 4
+    ctx.save()
+    ctx.translate(cx, cy)
+    ctx.rotate(angle)
+    ctx.beginPath()
+    ctx.moveTo(-spikeLen, 0)
+    ctx.quadraticCurveTo(0, -spikeHalfW, spikeLen, 0)
+    ctx.quadraticCurveTo(0, spikeHalfW, -spikeLen, 0)
+    ctx.closePath()
+    ctx.fill()
+    ctx.restore()
+  }
+
+  ctx.restore()
+}
+
 function drawParticle(ctx, p, px, py, radius, alpha, presetName) {
   ctx.save()
   ctx.globalAlpha = clampNumber(alpha, 0, 1, 0)
@@ -182,9 +225,22 @@ function drawParticle(ctx, p, px, py, radius, alpha, presetName) {
   }
 
   if (presetName === "cyber-neon") {
+    ctx.save()
     ctx.translate(px, py)
     ctx.rotate(Math.PI / 4)
     ctx.fillRect(-radius * 0.85, -radius * 0.85, radius * 1.7, radius * 1.7)
+    ctx.restore()
+    if (radius >= 2.2) {
+      ctx.strokeStyle = p.color
+      ctx.lineWidth = 0.9
+      const needle = radius * 2.5
+      ctx.beginPath()
+      ctx.moveTo(px - needle, py)
+      ctx.lineTo(px + needle, py)
+      ctx.moveTo(px, py - needle)
+      ctx.lineTo(px, py + needle)
+      ctx.stroke()
+    }
     ctx.restore()
     return
   }
@@ -193,14 +249,15 @@ function drawParticle(ctx, p, px, py, radius, alpha, presetName) {
   ctx.arc(px, py, radius, 0, Math.PI * 2)
   ctx.fill()
 
-  if (presetName === "starlight-cyan" && radius > 2.4) {
+  if ((presetName === "starlight-cyan" || presetName === "amber-firefly") && radius >= 2.2) {
     ctx.strokeStyle = p.color
-    ctx.lineWidth = 0.8
+    ctx.lineWidth = 0.95
+    const needle = radius * 2.7
     ctx.beginPath()
-    ctx.moveTo(px - radius * 2.2, py)
-    ctx.lineTo(px + radius * 2.2, py)
-    ctx.moveTo(px, py - radius * 2.2)
-    ctx.lineTo(px, py + radius * 2.2)
+    ctx.moveTo(px - needle, py)
+    ctx.lineTo(px + needle, py)
+    ctx.moveTo(px, py - needle)
+    ctx.lineTo(px, py + needle)
     ctx.stroke()
   }
   ctx.restore()
@@ -218,6 +275,9 @@ export function createFxCanvasController(canvasEl, options) {
   let preset = PRESET_CONFIG[opts.preset] ? opts.preset : "starlight-cyan"
   let mode = opts.mode === "ambient" ? "ambient" : "intro"
   let bursts = Array.isArray(opts.bursts) ? opts.bursts : []
+  let showAmbientFlares = Boolean(opts.showAmbientFlares)
+  let focalPoint = normalizePointPair(opts.focalPoint, 0.5, 0.45)
+  let secondaryPoint = normalizePointPair(opts.secondaryPoint, 0.35, 0.55)
   let particles = buildParticles(preset, mode)
   let currentTime = 0
   let outroFade = 0
@@ -279,7 +339,7 @@ export function createFxCanvasController(canvasEl, options) {
       if (p.y > 1.05) p.y -= 1.1
 
       const twinkle = 0.45 + 0.55 * Math.sin(nowSec * p.twinkle + p.phase)
-      const baseAlpha = mode === "ambient" ? 0.52 : 0.88
+      const baseAlpha = mode === "ambient" ? 0.78 : 0.88
       const alpha = twinkle * p.depth * baseAlpha * outroAlpha
       const px = p.x * width + parallaxX * p.depth * 18
       const py = p.y * height + parallaxY * p.depth * 14
@@ -298,6 +358,26 @@ export function createFxCanvasController(canvasEl, options) {
     }
 
     ctx.restore()
+
+    if (mode === "ambient" && showAmbientFlares) {
+      drawAmbientFocalFlare(ctx, width, height, focalPoint, nowSec, 1.0, 0, cfg, parallaxX, parallaxY)
+      const dx = focalPoint[0] - secondaryPoint[0]
+      const dy = focalPoint[1] - secondaryPoint[1]
+      if (dx * dx + dy * dy > 0.0025) {
+        drawAmbientFocalFlare(
+          ctx,
+          width,
+          height,
+          secondaryPoint,
+          nowSec,
+          0.66,
+          1.9,
+          cfg,
+          parallaxX * 0.7,
+          parallaxY * 0.7,
+        )
+      }
+    }
 
     if (mode === "intro" && bursts.length > 0) {
       for (const burst of bursts) {
@@ -405,6 +485,12 @@ export function createFxCanvasController(canvasEl, options) {
     parallaxY = clampNumber(py, -1, 1, 0)
   }
 
+  function setAmbientFlares(enabled, nextFocal, nextSecondary) {
+    showAmbientFlares = Boolean(enabled)
+    focalPoint = normalizePointPair(nextFocal, 0.5, 0.45)
+    secondaryPoint = normalizePointPair(nextSecondary, 0.35, 0.55)
+  }
+
   function dispose() {
     disposed = true
     stop()
@@ -416,6 +502,7 @@ export function createFxCanvasController(canvasEl, options) {
     setPreset,
     setMode,
     setBursts,
+    setAmbientFlares,
     setTime,
     setOutroFade,
     setParallax,
